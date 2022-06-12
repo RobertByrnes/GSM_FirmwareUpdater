@@ -1,0 +1,7 @@
+.pio/
+.vscode/
+build/
+src/config.h
+esp32_config.h
+*.txt
+*.log
