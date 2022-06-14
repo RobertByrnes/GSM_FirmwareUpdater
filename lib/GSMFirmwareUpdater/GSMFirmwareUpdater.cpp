@@ -25,7 +25,7 @@ const char *GSMFirmwareUpdater::cleanUrl(const char *url)
   return string.c_str();
 }
 
-bool GSMFirmwareUpdater::connectNetowrk(CellularNetwork800L &network) // private
+bool GSMFirmwareUpdater::connectNetwork(CellularNetwork800L &network) // private
 {
   if (!network.connectNetwork()) {
     return false;
@@ -59,14 +59,17 @@ void GSMFirmwareUpdater::printPercent(uint32_t readLength, uint32_t contentLengt
  */ 
 void GSMFirmwareUpdater::updateFirmware(TinyGsmClientSecure &client, CellularNetwork800L &network)
 {  
-  if (!this->connectNetowrk(network)) {
+  if (!this->connectNetwork(network)) {
+    Serial.println("[-] Connecting the network failed");
     return;
+  } else {
+    Serial.println("[+] Connected to the mobile network");
   }
 
-  uint32_t   knownCRC32    = 0x6f50d767;
-  uint32_t   knownFileSize = 1024;  // In case server does not send it
-
-  if (!client.connect(this->updateHost, this->port)) {
+  uint32_t knownCRC32 = 0x6f50d767;
+  uint32_t knownFileSize = 1024;  // In case server does not send it
+ 
+  if (!client.connected()) {
     Serial.print("[-] Connecting to update server failed: Url\n");
     Serial.println(this->updateHost);
     Serial.println(this->port);
@@ -78,6 +81,7 @@ void GSMFirmwareUpdater::updateFirmware(TinyGsmClientSecure &client, CellularNet
     Serial.println("[+] Connected to update server");
   }
 
+  HttpClient http(client, this->updateHost, this->port);
   Serial.print("[i] Performing HTTPS GET request to ");
   Serial.println(this->updateUrl);
 
@@ -87,63 +91,113 @@ void GSMFirmwareUpdater::updateFirmware(TinyGsmClientSecure &client, CellularNet
   client.print("Connection: close\r\n\r\n");
   Serial.println(F("[i] Waiting for response header"));
 
-  long timeout = millis();
-  while (client.available() == 0) {
-      if (millis() - timeout > 5000L) {
-          Serial.println("[-] Client Timeout");
-          client.stop();
-          delay(10000L);
-          return;
+
+  // Let's see what the entire elapsed time is, from after we send the request.
+  uint32_t timeElapsed = millis();
+
+  // While we are still looking for the end of the header (i.e. empty line
+  // FOLLOWED by a newline), continue to read data into the buffer, parsing each
+  // line (data FOLLOWED by a newline). If it takes too long to get data from
+  // the client, we need to exit.
+
+  const uint32_t clientReadTimeout   = 10000;
+  uint32_t       clientReadStartTime = millis();
+  String         headerBuffer;
+  bool           finishedHeader = false;
+  uint32_t       contentLength  = 0;
+
+  while (!finishedHeader) {
+    int nlPos;
+
+    if (client.available()) {
+      clientReadStartTime = millis();
+      while (client.available()) {
+        char c = client.read();
+        headerBuffer += c;
+
+        // Uncomment the lines below to see the data coming into the buffer
+        // if (c < 16)
+        //   SerialMon.print('0');
+        // SerialMon.print(c, HEX);
+        // SerialMon.print(' ');
+        // if (isprint(c))
+        //   SerialMon.print(reinterpret_cast<char> c);
+        // else
+        //   SerialMon.print('*');
+        // SerialMon.print(' ');
+
+        // Let's exit and process if we find a new line
+        if (headerBuffer.indexOf(F("\r\n")) >= 0) break;
       }
-  }
-
-  Serial.println("[D] Header received");
-  uint32_t contentLength = knownFileSize;
-
-  File file = SPIFFS.open("/update.bin", FILE_APPEND);
-
-  while (client.available()) {
-    String line = client.readStringUntil('\n');
-    line.trim();
-    //Serial.println(line);    // Uncomment this to show response header
-    line.toLowerCase();
-    if (line.startsWith("content-length:")) {
-        contentLength = line.substring(line.lastIndexOf(':') + 1).toInt();
-    } else if (line.length() == 0) {
+    } else {
+      if (millis() - clientReadStartTime > clientReadTimeout) {
+        // Time-out waiting for data from client
+        Serial.println("[-] Client Timeout");
         break;
+      }
+    }
+
+    // See if we have a new line.
+    nlPos = headerBuffer.indexOf(F("\r\n"));
+
+    if (nlPos > 0) {
+      headerBuffer.toLowerCase();
+      // Check if line contains content-length
+      if (headerBuffer.startsWith(F("content-length:"))) {
+        contentLength =
+            headerBuffer.substring(headerBuffer.indexOf(':') + 1).toInt();
+        // SerialMon.print(F("Got Content Length: "));  // uncomment for
+        // SerialMon.println(contentLength);            // confirmation
+      }
+
+      headerBuffer.remove(0, nlPos + 2);  // remove the line
+    } else if (nlPos == 0) {
+      // if the new line is empty (i.e. "\r\n" is at the beginning of the line),
+      // we are done with the header.
+      finishedHeader = true;
     }
   }
 
-  Serial.println("[D] receiving response");
-  timeout = millis();
+  // The two cases which are not managed properly are as follows:
+  // 1. The client doesn't provide data quickly enough to keep up with this
+  // loop.
+  // 2. If the client data is segmented in the middle of the 'Content-Length: '
+  // header,
+  //    then that header may be missed/damaged.
+  //
+
   uint32_t readLength = 0;
-  CRC32 crc;
+  CRC32    crc;
+  File file = SPIFFS.open("/update.bin", FILE_APPEND);
+  Serial.println("[+] File opened");
 
-  unsigned long timeElapsed = millis();
-  this->printPercent(readLength, contentLength);
+  if (finishedHeader && contentLength == knownFileSize) {
+    Serial.println(F("Reading response data"));
+    clientReadStartTime = millis();
 
-  while (readLength < contentLength && client.connected() && millis() - timeout < 10000L) {
-    Serial.println("[D] connected");
-    int i = 0;
-    char c;
-    while (client.available()) {
-    Serial.println("[D] available");
-      char c;
-      c = (char)client.read();
-      Serial.println(c); 
-      if (!file.print(c)) {
-        Serial.println("[-] Append Fault");
+    printPercent(readLength, contentLength);
+    while (readLength < contentLength && client.connected() &&
+           millis() - clientReadStartTime < clientReadTimeout) {
+      while (client.available()) {
+        uint8_t c = client.read();
+        if (!file.print(c)) {
+          Serial.println("[-] Append Fault");
+        }
+        // SerialMon.print(reinterpret_cast<char>c);  // Uncomment this to show
+        // data
+        crc.update(c);
+        readLength++;
+        if (readLength % (contentLength / 13) == 0) {
+          printPercent(readLength, contentLength);
+        }
+        clientReadStartTime = millis();
       }
-      Serial.println(c);       // Uncomment this to show data
-      //crc.update(c);
-      readLength++;
-
-      if (readLength % (contentLength / 13) == 0) {
-        printPercent(readLength, contentLength);
-      }
-      timeout = millis();
     }
+    printPercent(readLength, contentLength);
   }
+
+  timeElapsed = millis() - timeElapsed;
+  Serial.println();
 
   file.close();
 
@@ -192,7 +246,7 @@ void GSMFirmwareUpdater::updateFirmware(TinyGsmClientSecure &client, CellularNet
  * 
  * @return void
  */
-bool GSMFirmwareUpdater::spiffsInit() // privte
+bool GSMFirmwareUpdater::spiffsInit() // public
 {
   if (!SPIFFS.begin(false)) {
     Serial.println("[i] SPIFFS Mount Failed");

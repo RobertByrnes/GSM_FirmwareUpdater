@@ -1,6 +1,3 @@
-
-#define BAUD_RATE 115200
-
 // SIM800 pins
 #define MODEM_RST 5 // Reset pin
 #define MODEM_PWKEY 4 // Enable pin
@@ -25,3 +22,28 @@
 
 // See all AT commands, if wanted
 // #define DUMP_AT_COMMANDS
+
+// Define the serial console for debug prints, if needed
+#define TINY_GSM_DEBUG Serial
+
+// Range to attempt to autobaud
+// NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
+// communication, set a fixed baud rate using modem.setBaud(#).
+// #define GSM_AUTOBAUD_MIN 9600
+// #define GSM_AUTOBAUD_MAX 115200
+#define BAUD_RATE 115200
+
+// Add a reception delay, if needed.
+// This may be needed for a fast processor at a slow baud rate.
+// #define TINY_GSM_YIELD() { delay(2); }
+
+// Define how you're planning to connect to the internet.
+// This is only needed for this example, not in other code.
+#define TINY_GSM_USE_GPRS true
+#define TINY_GSM_USE_WIFI false
+
+// set GSM PIN, if any
+#define GSM_PIN ""
+
+// flag to force SSL client authentication, if needed
+// #define TINY_GSM_SSL_CLIENT_AUTHENTICATION
