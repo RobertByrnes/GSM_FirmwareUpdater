@@ -1,21 +1,21 @@
 #include <Arduino.h>
 #include <modem.h>
-#include <CRC32.h>
+// #include <CRC32.h>
 #include <Update.h>
-#include "FS.h"
-#include "SPIFFS.h"
-#include "FSImpl.h"
+// #include "FS.h"
+// #include "SPIFFS.h"
+// #include "FSImpl.h"
 #include <hexdump.cpp>
 
 // #define LOGGING  // <- Logging is for the HTTP library
 
-#define FORMAT_SPIFFS_IF_FAILED true
+// #define FORMAT_SPIFFS_IF_FAILED true
 
-uint32_t knownCRC32 = 0xCE664544; // 0x32B6E001
-uint32_t knownFileSize = 308688;  // In case server does not send it 838260 / 838681
+// uint32_t knownCRC32 = 0xCE664544; // 0x32B6E001
+// uint32_t knownFileSize = 308688;  // In case server does not send it 838260 / 838681
 uint totalLength = 0;
 uint currentLength = 0;
-uint32_t spiffsPartitionSize = 0;
+// uint32_t spiffsPartitionSize = 0;
 
 // Your GPRS credentials, if any
 const char apn[] = "giffgaff.com";
@@ -59,196 +59,26 @@ TinyGsm modem(SerialAT);
 TinyGsmClientSecure client(modem);
 HttpClient http(client, server, port);
 
-void writeUpdate(uint8_t *data, size_t len)
+
+void processUpdate(uint8_t *data, size_t len, uint32_t contentLength)
 {
-  size_t written = Update.write(data, len);
-  Serial.print("Written: ");
-  Serial.println(written);
+  Update.write(data, len);
   currentLength += len;
-  Serial.print("Current Length: ");
-  Serial.println(currentLength);
-  Serial.print("Total Length: ");
-  Serial.println(totalLength);
+  Serial.printf("[Current Length] %u\n", currentLength);
   // Print dots while waiting for update to finish
   Serial.print('.');
   // if current length of written firmware is not equal to total firmware size, repeat
-  if (currentLength != totalLength)
-    return;
-  Update.end(true);
-  Serial.printf("\nUpdate Success, Total Size: %u\nRebooting...\n", currentLength);
-  // Restart ESP32 to see changes
-  ESP.restart();
-}
-
-void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
-{
-  Serial.printf("[i] Listing directory: %s\n", dirname);
-
-  File root = fs.open(dirname);
+  if (currentLength != contentLength) return;
+  // Update.end(true);
+  // Serial.printf("\n[+] Update Success, Total Size: %u\nRebooting...\n", currentLength); 
   
-  if (!root) {
-    Serial.println("Failed to open directory");
-    return;
-  }
-  if (!root.isDirectory()) {
-    Serial.println("Not a directory");
-    return;
-  }
+  // client.stop();
+  // Serial.println(F("[i] Server disconnected"));
 
-  File file = root.openNextFile();
-  
-  while (file) {
-    if (file.isDirectory()) {
-      Serial.print("  DIR : ");
-      Serial.println(file.name());
-      if (levels) {
-        listDir(fs, file.name(), levels - 1);
-      }
-    } else {
-      Serial.print("  [i] File: ");
-      Serial.print(file.name());
-      Serial.print("  Size: ");
-      Serial.println(file.size());
-    }
-    file = root.openNextFile();
-  }
-}
+  // modem.gprsDisconnect();
+  // Serial.println(F("[i] GPRS disconnected"));
 
-bool spiffsInit() // public
-{
-  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
-    Serial.println("[i] SPIFFS Mount Failed");
-    return false;
-  }
-  
-  Serial.println("[i] SPIFFS Mounted");
-  SPIFFS.format();
-  spiffsPartitionSize = SPIFFS.totalBytes();
-  Serial.printf("[i] SPIFFS drive size available, %u\n", spiffsPartitionSize);
-  listDir(SPIFFS, "/", 0);
-
-  return true;
-}
-
-void appendFile(fs::FS &fs, const char *path, const char *message)
-{
-  Serial.printf("Appending to file: %s\n", path);
-
-  File file = fs.open(path, FILE_APPEND);
-
-  if (!file) {
-    Serial.println("Failed to open file for appending");
-    return;
-  }
-
-  if (file.print(message)) {
-    Serial.println("APOK");
-  } else {
-    Serial.println("APX");
-  }
-}
-
-void readFile(fs::FS &fs, const char *path)
-{
-  Serial.printf("Reading file: %s\n", path);
-
-  File file = fs.open(path);
-  
-  if (!file || file.isDirectory()) {
-    Serial.println("Failed to open file for reading");
-    return;
-  }
-
-  Serial.print("Read from file: ");
-  
-  while (file.available()) {
-    Serial.write(file.read());
-    delayMicroseconds(100);
-  }
-}
-
-void writeFile(fs::FS &fs, const char *path, const char *message)
-{
-  Serial.printf("Writing file: %s\n", path);
-
-  File file = fs.open(path, FILE_WRITE);
-  
-  if (!file) {
-    Serial.println("Failed to open file for writing");
-    return;
-  }
-
-  if (file.print(message)) {
-    Serial.println("File written");
-  } else {
-    Serial.println("Write failed");
-  }
-}
-
-void deleteFile(fs::FS &fs, const char *path)
-{
-  Serial.printf("Deleting file: %s\n", path);
-  if (fs.remove(path)) {
-    Serial.println("File deleted");
-  } else {
-    Serial.println("Delete failed");
-  }
-}
-
-void beginProcessingUpdate(Stream &updateSource, size_t updateSize)
-{
-  if (Update.begin(updateSize)) {
-    size_t written = Update.writeStream(updateSource);
-    // size_t written = Update.write(updateSource);
-    if (written == updateSize) {
-      Serial.println("[i] Written : " + String(written) + " successfully");
-    } else {
-      Serial.println("[-] Only written : " + String(written) + "/" + String(updateSize) + ". Retry?");
-      Serial.println(Update.errorString());
-    }
-
-    if (Update.end()) {
-      Serial.println("[+] OTA complete!");
-      if (Update.isFinished()) {
-        Serial.println("[+] Ota successful, restarting!");
-        ESP.restart();
-      } else {
-        Serial.println("[-] Ota did not complete, something went wrong!");
-      }
-    } else {
-      Serial.println("[-] Error Occured #: " + String(Update.getError()));
-    }
-  } else {
-    Serial.println("[-] Not enough space to do OTA");
-  }
-}
-
-void updateFromFS()
-{
-  File updateBin = SPIFFS.open("/update.bin");
-  if (updateBin) {
-    if (updateBin.isDirectory()) {
-      Serial.println("[-] Error, in the directory");
-      updateBin.close();
-      return;
-    }
-
-    size_t updateSize = updateBin.size();
-
-    if (updateSize > 0) {
-      Serial.println("[i] Trying to start update");
-      beginProcessingUpdate(updateBin, updateSize);
-    } else {
-      Serial.println("[-] Error, empty file");
-    }
-
-    updateBin.close();
-
-    // whe finished remove the binary from sd card to indicate end of the process
-    //fs.remove("/update.bin");
-  } else {
-    Serial.println("Can't upload file");
-  }
+  // ESP.restart(); // Restart ESP32 to see changes
 }
 
 void setup()
@@ -256,7 +86,7 @@ void setup()
   // Set console baud rate
   Serial.begin(115200);
 
-  spiffsInit();
+  // spiffsInit();
 
   delay(10);
 
@@ -290,17 +120,6 @@ void setup()
 #endif
 }
 
-void printPercent(uint32_t readLength, uint32_t contentLength) {
-  // If we know the total length
-  if (contentLength != (uint32_t)-1) {
-    Serial.print("\r ");
-    Serial.printf("[\% Downloaded] %u", (100.0 * readLength) / contentLength);
-    Serial.print('%');
-  } else {
-    Serial.println(readLength);
-  }
-}
-
 void loop()
 {
 #if TINY_GSM_USE_WIFI
@@ -331,26 +150,24 @@ void loop()
 
 #if TINY_GSM_USE_GPRS
   // GPRS connection parameters are usually set after network registration
-  Serial.print(F("[+] Connecting to "));
-  Serial.print(apn);
+  Serial.printf("[+] Connecting to %s", apn);
   if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
-    Serial.println("[-] fail");
+    Serial.println(" ... fail");
     delay(10000);
     return;
   }
-  Serial.println("[-] success");
+  Serial.println(" ... success");
 
   if (modem.isGprsConnected()) { Serial.println("[+] GPRS connected"); }
 #endif
 
-  Serial.print(F("[!] Connecting to "));
-  Serial.print(server);
+  Serial.printf("[i] Connecting to %s", server);
   if (!client.connect(server, port)) {
-    Serial.println("[-] fail");
+    Serial.println(" ... fail");
     delay(10000);
     return;
   }
-  Serial.println("[+] success");
+  Serial.println(" ... success");
 
   // Make a HTTP GET request:
   client.print(String("GET ") + resource + " HTTP/1.0\r\n");
@@ -367,7 +184,7 @@ void loop()
   // line (data FOLLOWED by a newline). If it takes too long to get data from
   // the client, we need to exit.
 
-  const uint32_t clientReadTimeout = 20000L;
+  uint32_t clientReadTimeout = 20000L;
   uint32_t clientReadStartTime = millis();
   String headerBuffer;
   bool finishedHeader = false;
@@ -433,82 +250,48 @@ void loop()
     }
   }
 
-  // The two cases which are not managed properly are as follows:
-  // 1. The client doesn't provide data quickly enough to keep up with this
-  // loop.
-  // 2. If the client data is segmented in the middle of the 'Content-Length: '
-  // header,
-  //    then that header may be missed/damaged.
-  //
-
   uint32_t readLength = 0;
-  CRC32 crc;
-  File file = SPIFFS.open("/update.bin", FILE_APPEND);
-  Serial.println("[+] File opened");
 
-  if (finishedHeader && contentLength == knownFileSize) {
+  // if (finishedHeader && contentLength == knownFileSize) {
+  if (finishedHeader && contentLength) {
     Serial.println(F("[i] Reading response data"));
     clientReadStartTime = millis();
 
-    printPercent(readLength, contentLength);
-    while (readLength < contentLength && client.connected() && millis() - clientReadStartTime < clientReadTimeout) {
-      while (client.available()) {
-        uint32_t c = client.read();   
+    //     // Uncomment to view hexDump of incoming binary file 
+    //     hexDump(Serial, "HEXDUMP: ", &c, 8, 8); 
 
-        // Uncomment to view hexDump of incoming binary file 
-        // hexDump(Serial, "HEXDUMP: ", &c, 32, 16); 
 
-        if (!file.print(c)) {
-          Serial.println("[-] Append Fault");
-          Serial.println(SPIFFS.usedBytes());
+    clientReadTimeout = 180000L;
+    uint32_t len = contentLength;
+    uint8_t buff[128] = { 0 }; // create buffer for read
+    Serial.println("[i] Updating firmware...");
+    Update.begin(UPDATE_SIZE_UNKNOWN);
+
+    while (client.connected() && (len > 0 || len == -1)) {
+        size_t size = client.available(); // get available data size
+        Serial.printf("[Size] %u\n", size);
+        if (size) {
+          int c = client.readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size)); // read up to 128 byte
+          processUpdate(buff, c, contentLength);
+
+          if (len > 0) {
+              len -= c;
+          }
+          delay(1);
         }
-        // Serial.print(c);  // Uncomment this to show
-        // data
-        // crc.update(c);
-        readLength++;
-        if (readLength % (contentLength / 13) == 0) {
-          printPercent(readLength, contentLength);
-        }
-        clientReadStartTime = millis();
-      }
     }
-    printPercent(readLength, contentLength);
   }
-
-  timeElapsed = millis() - timeElapsed;
-  Serial.println();
 
   // Shutdown
 
+  Update.end(true);
+  Serial.printf("\n[+] Update Success, Total Size: %u\nRebooting...\n", currentLength); 
+  
   client.stop();
   Serial.println(F("[i] Server disconnected"));
 
-#if TINY_GSM_USE_WIFI
-  modem.networkDisconnect();
-  Serial.println(F("[i] WiFi disconnected"));
-#endif
-#if TINY_GSM_USE_GPRS
   modem.gprsDisconnect();
   Serial.println(F("[i] GPRS disconnected"));
-#endif
 
-  float duration = float(timeElapsed) / 1000;
-
-  Serial.println();
-  Serial.print("[i] Content-Length: ");
-  Serial.println(contentLength);
-  Serial.print("[i] Actually read:  ");
-  Serial.println(readLength);
-  Serial.print("[i] Calc. CRC32:    0x");
-  Serial.println(crc.finalize(), HEX);
-  Serial.print("[i] Known CRC32:    0x");
-  Serial.println(knownCRC32, HEX);
-  Serial.print("[i] Duration:       ");
-  Serial.print(duration);
-  Serial.println("s");
-
-  updateFromFS();
-
-  // Do nothing forevermore
-  while (true) { delay(1000); }
+  ESP.restart(); // Restart ESP32 to see changes
 }

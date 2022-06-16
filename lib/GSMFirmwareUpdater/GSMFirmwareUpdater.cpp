@@ -37,7 +37,7 @@ void GSMFirmwareUpdater::printPercent(uint32_t readLength, uint32_t contentLengt
 {
   // If we know the total length
   if (contentLength != -1) {
-    Serial.print("\r ");
+    Serial.print("\r");
     Serial.print((100.0 * readLength) / contentLength);
     Serial.println('%');
   } else {
