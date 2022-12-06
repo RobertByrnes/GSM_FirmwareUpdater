@@ -2,7 +2,6 @@
 #define GSM_FIRMWARE_UPDATER_H
 
 #include <CellularNetwork.h>
-#include <OAuth2.h>
 #include <CRC32.h>
 #include <Update.h> 
 #include "FS.h"
@@ -12,7 +11,7 @@
 #define GSM_FIRMWARE_UPDATER_CLIENT_ERROR               (2)
 #define GSM_FIRMWARE_UPDATER_CLIENT_TIMEOUT             (3)
 
-class GSMFirmwareUpdater
+class GSM_FirmwareUpdater
 {
 public:
     int _totalLength = 0;
@@ -25,8 +24,8 @@ public:
     uint32_t _knownCRC32 = 0;
     uint32_t _timeout = 260000;
 
-    GSMFirmwareUpdater();
-    ~GSMFirmwareUpdater();
+    GSM_FirmwareUpdater();
+    ~GSM_FirmwareUpdater();
     void setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port);
     void setTimeout(uint32_t timeout);
     void setCRC(uint32_t crc);

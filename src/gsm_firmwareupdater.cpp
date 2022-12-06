@@ -1,10 +1,10 @@
-#include "GSMFirmwareUpdater.h"
+#include "GSM_FirmwareUpdater.h"
 
 // Constructor
-GSMFirmwareUpdater::GSMFirmwareUpdater() {}
+GSM_FirmwareUpdater::GSM_FirmwareUpdater() {}
 
 // Destructor
-GSMFirmwareUpdater::~GSMFirmwareUpdater() {}
+GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
 
 /**
  * @brief Set parameters for the update host.
@@ -14,7 +14,7 @@ GSMFirmwareUpdater::~GSMFirmwareUpdater() {}
  * @param port &uint16_t
  * @return void
 */
-void GSMFirmwareUpdater::setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port)
+void GSM_FirmwareUpdater::setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port)
 {
   _updateUrl = updateUrl;
   _updateHost = updateHost;
@@ -28,7 +28,7 @@ void GSMFirmwareUpdater::setConfig(std::string &updateUrl, std::string &updateHo
  * @param uint32_t crc
  * @return void 
 */
-void GSMFirmwareUpdater::setCRC(uint32_t crc)
+void GSM_FirmwareUpdater::setCRC(uint32_t crc)
 {
   _knownCRC32 = crc;
 }
@@ -38,7 +38,7 @@ void GSMFirmwareUpdater::setCRC(uint32_t crc)
  * 
  * @return void
  */
-bool GSMFirmwareUpdater::spiffsInit()
+bool GSM_FirmwareUpdater::spiffsInit()
 {
   if (!SPIFFS.begin(false)) {
     log_e("SPIFFS Mount Failed");
@@ -49,7 +49,7 @@ bool GSMFirmwareUpdater::spiffsInit()
   return true;
 }
 
-void GSMFirmwareUpdater::updateFromFS()
+void GSM_FirmwareUpdater::updateFromFS()
 {
   File updateBin = SPIFFS.open("/update.bin");
   if (updateBin) {
@@ -77,12 +77,12 @@ void GSMFirmwareUpdater::updateFromFS()
   }
 }
 
-void GSMFirmwareUpdater::setTimeout(uint32_t timeout)
+void GSM_FirmwareUpdater::setTimeout(uint32_t timeout)
 {
   _timeout = timeout;
 }
 
-void GSMFirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t updateSize)
+void GSM_FirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t updateSize)
 {
   if (Update.begin(updateSize)) {
     size_t written = Update.writeStream(updateSource);
