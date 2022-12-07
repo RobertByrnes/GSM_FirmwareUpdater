@@ -2,7 +2,8 @@
 #include <config.h>
 #include <ConfigParser.h>
 #include <GSM_FirmwareUpdater.h>
-
+#include <TinyGSM.h>
+#include <CellularNetwork.h>
 
 TinyGsm modem(SIM808_SERIAL);
 CellularNetwork network(
