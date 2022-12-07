@@ -2,6 +2,7 @@
 #include <config.h>
 #include <ConfigParser.h>
 #include <GSM_FirmwareUpdater.h>
+#include <modem.h>
 #include <TinyGSM.h>
 #include <CellularNetwork.h>
 
