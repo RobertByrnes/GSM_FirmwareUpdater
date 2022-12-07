@@ -1,5 +1,6 @@
 .vscode/
 .pio/
 src/main.cpp
+src/include/*
 *.log
 *.txt
