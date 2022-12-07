@@ -1,16 +1,39 @@
 #include <Arduino.h>
-#include <config.h>
-#include <ConfigParser.h>
 #include <GSM_FirmwareUpdater.h>
-#include <modem.h>
+
+#define TINY_GSM_MODEM_SIM800 // Modem is SIM800
+
 #include <TinyGSM.h>
 #include <CellularNetwork.h>
 
-TinyGsm modem(SIM808_SERIAL);
+#define TINY_GSM_RX_BUFFER              1024 // Set RX buffer to 1Kb
+#define SIM800_SERIAL                   Serial1
+#define I2C_SDA                         21 // Serial data
+#define I2C_SCL                         22 // Serial clock
+#define IP5306_ADDR                     0x75 // Initiate communication
+#define IP5306_REG_SYS_CTL0             0x00 // Begin write
+// #define GSM_SECURE_FIRMWARE_UPDATER
+#define ESP32_GSM_LED_PIN               13
+#define ESP32_GSM_SIM_PIN               ""
+
+int ESP32_GSM_BAUD_RATE = 115200;
+uint8_t ESP32_GSM_MODEM_POWER_PIN = 4;
+uint8_t ESP32_GSM_MODEM_RESET_PIN = 5;
+uint8_t ESP32_GSM_MODEM_POWER_ON_PIN = 23;
+uint8_t ESP32_GSM_MODEM_RX_PIN = 26;
+uint8_t ESP32_GSM_MODEM_TX_PIN = 27;
+uint32_t ESP32_GSM_STREAM_TIMEOUT;
+uint16_t ESP32_GSM_PORT;
+
+std::string ESP32_GSM_UPDATE_HOST = "somesite.ontheweb.com";
+std::string ESP32_GSM_UPDATE_URL = "/bin/firmware.bin";
+std::string ESP32_GSM_UPDATE_VERSION_FILE_URL = "/bin/firmware.txt";
+
+TinyGsm modem(SIM800_SERIAL);
 CellularNetwork network(
-  ESP32_GSM_APN.c_str(), 
-  ESP32_GSM_GPRS_USER.c_str(),
-  ESP32_GSM_GPRS_PASSWORD.c_str(),
+  "***APN***", 
+  "***USER***",
+  "***PASSWORD***",
   modem
 );
 
@@ -27,42 +50,6 @@ GSM_FirmwareUpdater update;
 void setup()
 {
   Serial.begin(115200);
-  ConfigParser::lsAll();
-  ESP32_GSM_FIRMWARE_VERSION = ConfigParser::findString(F("ESP32_GSM_FIRMWARE_VERSION"));
-  ESP32_GSM_BAUD_RATE = ConfigParser::findInt(F("ESP32_GSM_BAUD_RATE"));
-  ESP32_GSM_LED_PIN = ConfigParser::findInt(F("ESP32_GSM_LED_PIN"));
-  ESP32_GSM_MODEM_POWER_PIN = ConfigParser::findInt(F("ESP32_GSM_MODEM_POWER_PIN"));
-  ESP32_GSM_MODEM_RESET_PIN = ConfigParser::findInt(F("ESP32_GSM_MODEM_RESET_PIN"));
-  ESP32_GSM_MODEM_POWER_ON_PIN = ConfigParser::findInt(F("ESP32_GSM_MODEM_POWER_ON_PIN"));
-  ESP32_GSM_MODEM_RX_PIN = ConfigParser::findInt(F("ESP32_GSM_MODEM_RX_PIN"));
-  ESP32_GSM_MODEM_TX_PIN = ConfigParser::findInt(F("ESP32_GSM_MODEM_TX_PIN"));
-  ESP32_GSM_APN = ConfigParser::findString(F("ESP32_GSM_APN"));
-  ESP32_GSM_GPRS_USER = ConfigParser::findString(F("ESP32_GSM_GPRS_USER"));
-  ESP32_GSM_GPRS_PASSWORD = ConfigParser::findString(F("ESP32_GSM_GPRS_PASSWORD"));
-  ESP32_GSM_SIM_PIN = ConfigParser::findString(F("ESP32_GSM_SIM_PIN"));
-  ESP32_GSM_UPDATE_HOST = ConfigParser::findString(F("ESP32_GSM_UPDATE_HOST"));
-  ESP32_GSM_PORT = ConfigParser::findInt(F("ESP32_GSM_PORT"));
-  ESP32_GSM_UPDATE_URL = ConfigParser::findString(F("ESP32_GSM_UPDATE_URL"));
-  ESP32_GSM_UPDATE_VERSION_FILE_URL = ConfigParser::findString(F("ESP32_GSM_UPDATE_VERSION_FILE_URL"));
-  ESP32_GSM_WIFI_SSID = ConfigParser::findString(F("ESP32_GSM_WIFI_SSID"));
-  ESP32_GSM_WIFI_PASSWORD = ConfigParser::findString(F("ESP32_GSM_WIFI_PASSWORD"));
-  ESP32_GSM_STREAM_TIMEOUT = ConfigParser::findInt(F("ESP32_GSM_STREAM_TIMEOUT"));
-
-  log_i("ESP32_GSM_FIRMWARE_VERSION=%s", ESP32_GSM_FIRMWARE_VERSION.c_str());
-  log_i("ESP32_GSM_BAUD_RATE=%u", ESP32_GSM_BAUD_RATE);
-  log_i("ESP32_GSM_LED_PIN=%u", ESP32_GSM_LED_PIN);
-  log_i("ESP32_GSM_APN=%s", ESP32_GSM_APN.c_str());
-  log_i("ESP32_GSM_GPRS_USER=%s", ESP32_GSM_GPRS_USER.c_str());
-  log_i("ESP32_GSM_GPRS_PASSWORD=%s", ESP32_GSM_GPRS_PASSWORD.c_str());
-  log_i("ESP32_GSM_SIM_PIN=%s", ESP32_GSM_SIM_PIN.c_str());
-  log_i("ESP32_GSM_UPDATE_HOST=%s", ESP32_GSM_UPDATE_HOST.c_str());
-  log_i("ESP32_GSM_PORT=%u", ESP32_GSM_PORT);
-  log_i("ESP32_GSM_UPDATE_URL=%s", ESP32_GSM_UPDATE_URL.c_str());
-  log_i("ESP32_GSM_UPDATE_VERSION_FILE_URL=%s", ESP32_GSM_UPDATE_VERSION_FILE_URL.c_str());
-  log_i("ESP32_GSM_WIFI_SSID=%s", ESP32_GSM_WIFI_SSID.c_str());
-  log_i("ESP32_GSM_WIFI_PASSWORD=%s", ESP32_GSM_WIFI_PASSWORD.c_str());
-  log_i("ESP32_GSM_STREAM_TIMEOUT=%u", ESP32_GSM_STREAM_TIMEOUT);
-
 
   pinMode(ESP32_GSM_LED_PIN, OUTPUT);
   delay(5000);
@@ -77,11 +64,11 @@ void setup()
   );
 
   network.initSim(
-    ESP32_GSM_SIM_PIN.c_str(),
+    ESP32_GSM_SIM_PIN,
     ESP32_GSM_BAUD_RATE,
     ESP32_GSM_MODEM_RX_PIN,
     ESP32_GSM_MODEM_TX_PIN,
-    SIM808_SERIAL
+    SIM800_SERIAL
   );
   
   network._cellnet.restart();
