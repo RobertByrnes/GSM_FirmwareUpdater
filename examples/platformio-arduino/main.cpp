@@ -75,7 +75,7 @@ void setup()
 
   delay(1000);
 
-  update.setConfig(
+  update.configure(
     ESP32_GSM_UPDATE_URL,
     ESP32_GSM_UPDATE_HOST,
     ESP32_GSM_PORT
@@ -83,7 +83,6 @@ void setup()
 
   update.setCRC(0xd108c734);
   update.setTimeout(ESP32_GSM_STREAM_TIMEOUT);
-  update.spiffsInit();
   update.updateFirmware(client, network);
 }
 
