@@ -6,6 +6,7 @@
 #include <Update.h> 
 #include "FS.h"
 #include "SPIFFS.h"
+#include <semver.hpp>
 
 #define GSM_FIRMWARE_UPDATER_NETWORK_ERROR              (1)
 #define GSM_FIRMWARE_UPDATER_CLIENT_ERROR               (2)
@@ -23,17 +24,28 @@ public:
     uint8_t _downloadAttempts = 5;
     uint32_t _knownCRC32 = 0;
     uint32_t _timeout = 260000;
+    std::string _currentVersion = ""; // Current firmware version
+    uint8_t _errorNumber = 0; // Error number
 
     GSM_FirmwareUpdater();
     ~GSM_FirmwareUpdater();
-    void setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port);
+    void configure(std::string &updateUrl, std::string &updateHost, uint16_t &port);
     void setTimeout(uint32_t timeout);
     void setCRC(uint32_t crc);
     bool spiffsInit();  
     void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
+    std::string availableFirmwareVersion();
 
-    // template <typename ClientType, typename NetworkType>
-    // void updateFirmware(ClientType &client, NetworkType &network);
+    /**
+     * @brief use the WiFi class to return the local IP Address
+     * 
+     * @return IPAddress
+     */
+    template <typename NetworkType>
+    IPAddress ipAddress(NetworkType &network) // public
+    {
+    return network._cellnet.localIP();
+    }
     
     /**
      * @brief Function to update firmware incrementally.
@@ -69,10 +81,102 @@ public:
         this->updateFromFS();
     }
 
+    /**
+     * @brief Connect to the update server and get the version file,
+     * if the version is greater than the current version this 
+     * function will return true, else it will be false.
+     * 
+     * @param versionFileUrl const char *
+     * @return bool
+     */
+    template <typename ClientType, typename NetworkType> 
+    bool checkUpdateAvailable(ClientType &client, NetworkType &network, const char * versionFileUrl)
+    {
+        int contentLength = 0;
+        try { 
+            this->openConnections(client, network);
+            contentLength = this->readFirmwareHeaders(client);
+        } catch (int error) {
+            _error = error;
+            return false;
+        }
+
+        if (_respCode == 200) {
+            int len = _totalLength = client.getSize(); // get length of doc (is -1 when Server sends no Content-Length header)
+            std::string currentVersion = this->versionNumberFromString(client, true);
+            std::string availableVersion = this->versionNumberFromString(client, false);
+            int check = Semver::versionCompare(currentVersion, availableVersion);
+
+            if (check=-1) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            _errorNumber = 2;
+
+            this->shutdownConnections(client, network);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @brief Parses the version number (semantic versioning) from a string read
+     * from the GET request, or from the CURRENT_VERSION declared in 
+     * version.h. Version is returned as an integer for comparison,
+     * e.g. "version=1.2.8" will be returned as 128.
+     * 
+     * @param currentVersionCheck bool
+     * @return int version or int error
+     */
+    template <typename ClientType>
+    std::string versionNumberFromString(ClientType &client, bool currentVersionCheck)
+    {
+        std::string version;
+
+        try {
+            if (currentVersionCheck == false) {
+                version = client.getString().c_str();
+                version = version.substr(version.find_first_of("=") + 1);
+                _availableVersion = version.c_str();
+
+                if (_availableVersion == "") {
+                    throw 5;
+                }
+
+                if (version == "") {
+                    throw 6;
+                } 
+            } else {
+                version = _currentVersion;
+            }
+        } catch (int error) {
+            _errorNumber = error;
+            // return error;
+        }
+
+        return version;
+        // std::string output;
+        // output.reserve(version.size()); // optional, avoids buffer reallocations in the loop
+
+        // for (size_t i = 0; i < version.size(); ++i) {
+        //     if (version[i] != '.') {
+        //         output += version[i];
+        //     }
+        // }
+        // return std::atoi( output.c_str() );
+    }
+
 protected:
     void updateFromFS();
 
 private:
+    String _availableVersion; // Firmware version available on the remote server
+    int _respCode; // HTTP response from GET requests
+
     void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
     void writeUpdate(uint8_t *data, size_t len);
 
