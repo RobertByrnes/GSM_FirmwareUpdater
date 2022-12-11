@@ -29,10 +29,9 @@ public:
 
     GSM_FirmwareUpdater();
     ~GSM_FirmwareUpdater();
-    void configure(std::string &updateUrl, std::string &updateHost, uint16_t &port);
+    void configure(const std::string &updateUrl, const std::string &updateHost, const uint16_t &port);
     void setTimeout(uint32_t timeout);
     void setCRC(uint32_t crc);
-    bool spiffsInit();  
     void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
     std::string availableFirmwareVersion();
 
@@ -155,33 +154,21 @@ public:
             }
         } catch (int error) {
             _errorNumber = error;
-            // return error;
         }
 
         return version;
-        // std::string output;
-        // output.reserve(version.size()); // optional, avoids buffer reallocations in the loop
-
-        // for (size_t i = 0; i < version.size(); ++i) {
-        //     if (version[i] != '.') {
-        //         output += version[i];
-        //     }
-        // }
-        // return std::atoi( output.c_str() );
     }
 
 protected:
     void updateFromFS();
 
 private:
-    String _availableVersion; // Firmware version available on the remote server
+    std::string _availableVersion; // Firmware version available on the remote server
     int _respCode; // HTTP response from GET requests
 
+    bool spiffsInit();  
     void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
     void writeUpdate(uint8_t *data, size_t len);
-
-    // template <typename ClientType, typename NetworkType>
-    // void openConnections(ClientType &client, NetworkType &network);
     
     /**
      * @brief Make a connection to the mobile network and a HTTP connection to the firmware host.
@@ -215,9 +202,6 @@ private:
         log_i("Connected to update server, requesting %s", _updateUrl.c_str());
     }
 
-    // template <typename ClientType, typename NetworkType>
-    // void shutdownConnections(ClientType &client, NetworkType &network);
-
     /**
      * @brief Close connections to the update host and the mobile network.
      * 
@@ -234,9 +218,6 @@ private:
         network._cellnet.gprsDisconnect();
         log_i("GPRS disconnected");
     }
-
-    // template <typename ClientType>
-    // int readFirmwareHeaders(ClientType &client);
     
     /**
      * @brief Make HTTP GET request to firmware location and return the content length,
@@ -282,9 +263,6 @@ private:
 
         return contentLength;
     }
-
-    // template <typename ClientType, typename Len> 
-    // int streamUpdateToFile(ClientType &client, Len contentLength);
 
     /**
      * @brief Make a timed download of update file, the length of bytes read / written is compared,
