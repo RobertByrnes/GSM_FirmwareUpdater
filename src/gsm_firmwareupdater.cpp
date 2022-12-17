@@ -17,11 +17,16 @@ GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
  * @param port &uint16_t
  * @return void
 */
-void GSM_FirmwareUpdater::configure(const std::string &updateUrl, const std::string &updateHost, const uint16_t &port)
-{
+void GSM_FirmwareUpdater::configure(
+  const std::string &updateUrl,
+  const std::string &updateHost,
+  const uint16_t &port,
+  const std::string &currentVersion
+  ) {
   _updateUrl = updateUrl;
   _updateHost = updateHost;
   _port = port;
+  _currentVersion = currentVersion;
 }
 
 /**

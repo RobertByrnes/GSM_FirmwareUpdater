@@ -29,7 +29,12 @@ public:
 
     GSM_FirmwareUpdater();
     ~GSM_FirmwareUpdater();
-    void configure(const std::string &updateUrl, const std::string &updateHost, const uint16_t &port);
+    void configure(
+        const std::string &updateUrl, 
+        const std::string &updateHost, 
+        const uint16_t &port,
+        const std::string &currentVersion
+    );
     void setTimeout(uint32_t timeout);
     void setCRC(uint32_t crc);
     void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
@@ -41,9 +46,9 @@ public:
      * @return IPAddress
      */
     template <typename NetworkType>
-    IPAddress ipAddress(NetworkType &network) // public
+    IPAddress ipAddress(NetworkType &network)
     {
-    return network._cellnet.localIP();
+        return network._cellnet.localIP();
     }
     
     /**
@@ -61,8 +66,8 @@ public:
     { 
         int contentLength = 0;
         try { 
-            this->openConnections(client, network);
-            contentLength = this->readFirmwareHeaders(client);
+            this->openConnections(client, network, _updateUrl.c_str());
+            contentLength = this->readFirmwareHeaders(client, _updateUrl);
         } catch (int error) {
             _error = error;
             return;
@@ -93,17 +98,20 @@ public:
     {
         int contentLength = 0;
         try { 
-            this->openConnections(client, network);
-            contentLength = this->readFirmwareHeaders(client);
+            this->openConnections(client, network, versionFileUrl);
+            contentLength = this->readFirmwareHeaders(client, versionFileUrl);
+            log_i("Content length of version file: %i", contentLength);
         } catch (int error) {
             _error = error;
             return false;
         }
 
         if (_respCode == 200) {
-            int len = _totalLength = client.getSize(); // get length of doc (is -1 when Server sends no Content-Length header)
+            int len = _totalLength = contentLength; // get length of doc (is -1 when Server sends no Content-Length header)
             std::string currentVersion = this->versionNumberFromString(client, true);
+            log_d("Current Version: %s", currentVersion.c_str());
             std::string availableVersion = this->versionNumberFromString(client, false);
+            log_d("Available Version: %s", availableVersion.c_str());
             int check = Semver::versionCompare(currentVersion, availableVersion);
 
             if (check=-1) {
@@ -135,10 +143,19 @@ public:
     std::string versionNumberFromString(ClientType &client, bool currentVersionCheck)
     {
         std::string version;
-
+        unsigned long timeElapsed = millis();
+        uint8_t wbuf[256];
+        log_i("Current Version Check: %u", currentVersionCheck);
         try {
             if (currentVersionCheck == false) {
-                version = client.getString().c_str();
+                // while (client.connected() && millis() - timeElapsed < _timeout) {
+                    while (client.available()) {
+                        String line = client.readStringUntil('\n');
+                        line.trim();
+                        log_d("Reading line: %s", line.c_str());
+                        version = string(line.c_str());
+                    }
+                // }
                 version = version.substr(version.find_first_of("=") + 1);
                 _availableVersion = version.c_str();
 
@@ -180,7 +197,7 @@ private:
      * @return void
     */
     template <typename ClientType, typename NetworkType>
-    void openConnections(ClientType &client, NetworkType &network)
+    void openConnections(ClientType &client, NetworkType &network, const char * url)
     {
         if (!network.connectNetwork()) {
             log_e("Failed to connect to the mobile network");
@@ -193,13 +210,13 @@ private:
             "Connecting to update server failed, Host: %s, Port: %u, Url: %s",
             _updateHost.c_str(),
             _port,
-            _updateUrl.c_str()
+            url
             );
 
             throw GSM_FIRMWARE_UPDATER_CLIENT_ERROR;  
         }
 
-        log_i("Connected to update server, requesting %s", _updateUrl.c_str());
+        log_i("Connected to update server, requesting %s", url);
     }
 
     /**
@@ -228,10 +245,10 @@ private:
      * @return contentLength int
     */
     template <typename ClientType>
-    int readFirmwareHeaders(ClientType &client)
+    int readFirmwareHeaders(ClientType &client, std::string url)
     {
         uint32_t contentLength = 0;
-        client.print(std::string("GET ").append(_updateUrl).append(" HTTP/1.0\r\n").c_str());
+        client.print(std::string("GET ").append(url).append(" HTTP/1.0\r\n").c_str());
         client.print(std::string("Host: ").append(_updateHost).append("\r\n").c_str());
         client.print("Connection: close\r\n\r\n");
         log_i("Waiting for response header");
@@ -240,9 +257,9 @@ private:
 
         while (client.available() == 0) {
             if (millis() - timeout > 20000L) {
-            client.stop();
-            delay(10000L);
-            throw GSM_FIRMWARE_UPDATER_CLIENT_TIMEOUT;
+                client.stop();
+                delay(10000L);
+                throw GSM_FIRMWARE_UPDATER_CLIENT_TIMEOUT;
             }
         }
 
@@ -254,10 +271,13 @@ private:
             log_d("Reading line: %s", line.c_str());
             line.toLowerCase();
             if (line.startsWith("content-length:")) {
-            contentLength = line.substring(line.lastIndexOf(':') + 1).toInt();
-            log_i("Content length: %u", contentLength);
+                contentLength = line.substring(line.lastIndexOf(':') + 1).toInt();
+                log_i("Content length: %u", contentLength);
+            } else if (line.startsWith("http")) {
+                _respCode = line.substring(line.lastIndexOf('.') + 3).toInt();
+                log_d("Reading Response Code: %i", _respCode);
             } else if (line.length() == 0) {
-            break;
+                break;
             }
         }
 
@@ -283,9 +303,9 @@ private:
 
         while (client.connected() && millis() - timeElapsed < _timeout) {
             while (client.available()) {
-            int rd = client.readBytes(wbuf, sizeof(wbuf));
-            readLength += file.write(wbuf, rd);
-            crc.update(rd);
+                int rd = client.readBytes(wbuf, sizeof(wbuf));
+                readLength += file.write(wbuf, rd);
+                crc.update(rd);
             }
         }
 

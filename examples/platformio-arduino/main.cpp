@@ -26,8 +26,10 @@ uint32_t ESP32_GSM_STREAM_TIMEOUT;
 uint16_t ESP32_GSM_PORT;
 
 std::string ESP32_GSM_UPDATE_HOST = "somesite.ontheweb.com";
-std::string ESP32_GSM_UPDATE_URL = "/bin/firmware.bin";
+std::string ESP32_GSM_UPDATE_BINARY_FILE_URL = "/bin/firmware.bin";
 std::string ESP32_GSM_UPDATE_VERSION_FILE_URL = "/bin/firmware.txt";
+
+std::string ESP32_GSM_FIRMWARE_VERSION = "0.0.1";
 
 TinyGsm modem(SIM800_SERIAL);
 CellularNetwork network(
@@ -76,9 +78,10 @@ void setup()
   delay(1000);
 
   update.configure(
-    ESP32_GSM_UPDATE_URL,
+    ESP32_GSM_UPDATE_BINARY_FILE_URL,
     ESP32_GSM_UPDATE_HOST,
-    ESP32_GSM_PORT
+    ESP32_GSM_PORT,
+    ESP32_GSM_FIRMWARE_VERSION
   );
 
   update.setCRC(0xd108c734);
