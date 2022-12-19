@@ -107,26 +107,23 @@ public:
         }
 
         if (_respCode == 200) {
-            int len = _totalLength = contentLength; // get length of doc (is -1 when Server sends no Content-Length header)
+            _totalLength = contentLength; // get length of doc (is -1 when Server sends no Content-Length header)
             std::string currentVersion = this->versionNumberFromString(client, true);
             log_d("Current Version: %s", currentVersion.c_str());
             std::string availableVersion = this->versionNumberFromString(client, false);
             log_d("Available Version: %s", availableVersion.c_str());
             int check = Semver::versionCompare(currentVersion, availableVersion);
 
-            if (check=-1) {
+            if (check == -1) {
                 return true;
             } else {
                 return false;
             }
         } else {
             _errorNumber = 2;
-
             this->shutdownConnections(client, network);
-
             return false;
         }
-
         return true;
     }
 
@@ -181,7 +178,7 @@ protected:
 
 private:
     std::string _availableVersion; // Firmware version available on the remote server
-    int _respCode; // HTTP response from GET requests
+    int _respCode = 0; // HTTP response from GET requests
 
     bool spiffsInit();  
     void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
@@ -295,6 +292,8 @@ private:
     template <typename ClientType, typename Len>
     int streamUpdateToFile(ClientType &client, Len contentLength)
     {
+        log_d("Timeout: %i", _timeout);
+        log_d("Content Length: %i", contentLength);
         unsigned long timeElapsed = millis();
         uint32_t readLength = 0;
         CRC32 crc;
