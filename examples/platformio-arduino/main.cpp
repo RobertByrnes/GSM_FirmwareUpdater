@@ -22,8 +22,8 @@ uint8_t ESP32_GSM_MODEM_RESET_PIN = 5;
 uint8_t ESP32_GSM_MODEM_POWER_ON_PIN = 23;
 uint8_t ESP32_GSM_MODEM_RX_PIN = 26;
 uint8_t ESP32_GSM_MODEM_TX_PIN = 27;
-uint32_t ESP32_GSM_STREAM_TIMEOUT;
-uint16_t ESP32_GSM_PORT;
+uint32_t ESP32_GSM_STREAM_TIMEOUT = 260000;
+uint16_t ESP32_GSM_PORT = 80;
 
 std::string ESP32_GSM_UPDATE_HOST = "somesite.ontheweb.com";
 std::string ESP32_GSM_UPDATE_BINARY_FILE_URL = "/bin/firmware.bin";
