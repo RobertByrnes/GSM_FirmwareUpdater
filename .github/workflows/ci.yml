@@ -5,7 +5,7 @@ on:
     branches: 
       - main
       - development
-      - 'hotfix/static_code_analysis'
+      - 'feature/bring_api_inline_with_WiFi_FirmwareUpdater'
 
 jobs:
   build:

@@ -1,7 +1,10 @@
 #include "GSM_FirmwareUpdater.h"
 
 // Constructor
-GSM_FirmwareUpdater::GSM_FirmwareUpdater() {}
+GSM_FirmwareUpdater::GSM_FirmwareUpdater()
+{
+  this->spiffsInit();
+}
 
 // Destructor
 GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
@@ -14,11 +17,16 @@ GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
  * @param port &uint16_t
  * @return void
 */
-void GSM_FirmwareUpdater::setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port)
-{
+void GSM_FirmwareUpdater::configure(
+  const std::string &updateUrl,
+  const std::string &updateHost,
+  const uint16_t &port,
+  const std::string &currentVersion
+  ) {
   _updateUrl = updateUrl;
   _updateHost = updateHost;
   _port = port;
+  _currentVersion = currentVersion;
 }
 
 /**
@@ -107,4 +115,14 @@ void GSM_FirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t upd
   } else {
     log_e("Not enough space to do OTA");
   }
+}
+
+/**
+ * @brief Get the firmware version available on the update server.
+ * 
+ * @return std::string
+ */
+std::string GSM_FirmwareUpdater::availableFirmwareVersion()
+{
+  return _availableVersion;
 }
