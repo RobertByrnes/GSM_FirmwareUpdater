@@ -141,18 +141,15 @@ public:
     {
         std::string version;
         unsigned long timeElapsed = millis();
-        uint8_t wbuf[256];
         log_i("Current Version Check: %u", currentVersionCheck);
         try {
             if (currentVersionCheck == false) {
-                // while (client.connected() && millis() - timeElapsed < _timeout) {
-                    while (client.available()) {
-                        String line = client.readStringUntil('\n');
-                        line.trim();
-                        log_d("Reading line: %s", line.c_str());
-                        version = string(line.c_str());
-                    }
-                // }
+                while (client.available()) {
+                    String line = client.readStringUntil('\n');
+                    line.trim();
+                    log_d("Reading line: %s", line.c_str());
+                    version = string(line.c_str());
+                }
                 version = version.substr(version.find_first_of("=") + 1);
                 _availableVersion = version.c_str();
 
