@@ -1,6 +1,6 @@
 {
     "name": "GSM_FirmwareUpdater",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A Developer friendly package for performing firmware updates",
     "keywords": "updates, firmware, http, https, esp32, esp32-s2, esp32-c3, esp32-s3",
     "repository":
@@ -19,12 +19,13 @@
     "license": "GPL-3.0-or-later",
     "frameworks": "*",
     "platforms": "espressif32, arduino",
-    "headers": ["GSM_FirmwareUpdater.h"],
+    "headers": ["gsm_firmwareupdater.h", "modem.hpp"],
     "examples": "examples/*/*",
     "dependencies":
     {
-        "vshymanskyy/StreamDebugger": "^1.0.1",
+        "govorox/SSLClient": "1.0.0",
         "bakercp/CRC32": "^2.0.0",
-        "khoih-prog/ESP32TimerInterrupt": "^2.0.1"
+        "vshymanskyy/TinyGSM": "0.11.5",
+        "arduino-libraries/ArduinoHttpClient": "0.4.0"
     }
   }
