@@ -1,37 +1,14 @@
 #include "GSM_FirmwareUpdater.h"
 
 // Constructor
-GSM_FirmwareUpdater::GSM_FirmwareUpdater() {}
+GSM_FirmwareUpdater::GSM_FirmwareUpdater(std::string currentVersion): _currentVersion(currentVersion)
+{
+  this->spiffsInit();
+}
 
 // Destructor
 GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
 
-/**
- * @brief Set parameters for the update host.
- * 
- * @param updateUrl &std::string
- * @param updateHost &std::string
- * @param port &uint16_t
- * @return void
-*/
-void GSM_FirmwareUpdater::setConfig(std::string &updateUrl, std::string &updateHost, uint16_t &port)
-{
-  _updateUrl = updateUrl;
-  _updateHost = updateHost;
-  _port = port;
-}
-
-/**
- * @brief Set the known CRC32 hash of the update file for use in comparison with the
- * downloaded update file.
- * 
- * @param uint32_t crc
- * @return void 
-*/
-void GSM_FirmwareUpdater::setCRC(uint32_t crc)
-{
-  _knownCRC32 = crc;
-}
 
 /**
  * @brief Mount the SPIFFS filesystem (this is in FLASH memory).
@@ -49,9 +26,9 @@ bool GSM_FirmwareUpdater::spiffsInit()
   return true;
 }
 
-void GSM_FirmwareUpdater::updateFromFS()
+void GSM_FirmwareUpdater::updateFromFS(const char * updateFilePath)
 {
-  File updateBin = SPIFFS.open("/update.bin");
+  File updateBin = SPIFFS.open(updateFilePath);
   if (updateBin) {
     if (updateBin.isDirectory()) {
       log_e("Error, in the directory");
@@ -75,11 +52,6 @@ void GSM_FirmwareUpdater::updateFromFS()
   } else {
     log_e("Can't open update file");
   }
-}
-
-void GSM_FirmwareUpdater::setTimeout(uint32_t timeout)
-{
-  _timeout = timeout;
 }
 
 void GSM_FirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t updateSize)
@@ -108,3 +80,48 @@ void GSM_FirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t upd
     log_e("Not enough space to do OTA");
   }
 }
+
+  /**
+   * @brief Connect to the update server and get the version file,
+   * if the version is greater than the current version this 
+   * function will return true, else it will be false.
+   * 
+   * @param availableVersionString std::string
+   * 
+   * @return bool
+   */
+  bool GSM_FirmwareUpdater::checkUpdateAvailable(std::string availableVersionString)
+  { 
+      std::string availableVersion = this->versionNumberFromString(availableVersionString);
+      log_i("Available Version: %s", availableVersion.c_str());
+      log_i("Current Version: %s", _currentVersion.c_str());
+      int check = Semver::versionCompare(_currentVersion, availableVersion);
+      log_i("Check result: %i", check);
+      
+      if (check == -1) {
+          return true;
+      } else {
+          return false;
+      }
+  }
+
+    /**
+     * @brief Parses the version number from a string read of the format
+     * "version=1.2.8". Version is returned as an integer for comparison,
+     * e.g. "version=1.2.8" will be returned as 128.
+     * 
+     * @param availableVersion std::string
+     * 
+     * @return int version or int error
+     */
+    std::string GSM_FirmwareUpdater::versionNumberFromString(std::string availableVersion)
+    {
+        std::string version;
+        version = availableVersion.substr(availableVersion.find_first_of("=") + 1);
+
+        if (version == "") {
+            throw 6;
+        } 
+
+        return version;
+    }
