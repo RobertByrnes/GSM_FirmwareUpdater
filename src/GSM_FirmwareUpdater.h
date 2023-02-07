@@ -18,14 +18,12 @@ class GSM_FirmwareUpdater
     GSM_FirmwareUpdater(std::string currentVersion);
     ~GSM_FirmwareUpdater();
 
-    void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
     bool checkUpdateAvailable(std::string availableVersionString);
     void updateFromFS(const char * updateFilePath);
 
     private:
     bool spiffsInit();  
     void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
-    void writeUpdate(uint8_t *data, size_t len);
     std::string versionNumberFromString(std::string availableVersion);
 };
 
