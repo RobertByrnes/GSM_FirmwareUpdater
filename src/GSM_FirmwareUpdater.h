@@ -1,7 +1,7 @@
 #ifndef GSM_FIRMWARE_UPDATER_H
 #define GSM_FIRMWARE_UPDATER_H
 
-#include <CellularNetwork.h>
+// #include <CellularNetwork.h>
 #include <CRC32.h>
 #include <Update.h> 
 #include "FS.h"
@@ -105,7 +105,7 @@ public:
             _error = error;
             return false;
         }
-
+ 
         if (_respCode == 200) {
             _totalLength = contentLength; // get length of doc (is -1 when Server sends no Content-Length header)
             std::string currentVersion = this->versionNumberFromString(client, true);
@@ -199,7 +199,9 @@ private:
             throw GSM_FIRMWARE_UPDATER_NETWORK_ERROR;
         }
 
-        if (!client.connect(_updateHost.c_str(), _port)) {
+        client.connectionKeepAlive();
+        int err = client.get(url);
+        if (err != 0) {
             log_e(
             "Connecting to update server failed, Host: %s, Port: %u, Url: %s",
             _updateHost.c_str(),
@@ -240,7 +242,8 @@ private:
     */
     template <typename ClientType>
     int readFirmwareHeaders(ClientType &client, std::string url)
-    {
+    {log_i("get statis code %i", client.responseStatusCode());
+        int status = client.responseStatusCode();
         uint32_t contentLength = 0;
         client.print(std::string("GET ").append(url).append(" HTTP/1.0\r\n").c_str());
         client.print(std::string("Host: ").append(_updateHost).append("\r\n").c_str());
