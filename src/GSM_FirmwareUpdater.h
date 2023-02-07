@@ -12,9 +12,7 @@
 
 class GSM_FirmwareUpdater
 {
-public:
-    uint16_t _error = 0;
-    uint32_t _timeout = 260000;
+    public:
     std::string _currentVersion = "";
 
     GSM_FirmwareUpdater(std::string currentVersion);
@@ -24,10 +22,7 @@ public:
     bool checkUpdateAvailable(std::string availableVersionString);
     void updateFromFS(const char * updateFilePath);
 
-private:
-    std::string _availableVersion; // Firmware version available on the remote server
-    int _respCode = 0; // HTTP response from GET requests
-
+    private:
     bool spiffsInit();  
     void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
     void writeUpdate(uint8_t *data, size_t len);
