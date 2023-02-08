@@ -1,6 +1,7 @@
 #define TINY_GSM_MODEM_SIM800
 #define HTTPS_NO_GPRS_CONN          (0)
 #define HTTPS_NONE_200_RESP         (1)
+#define HTTPS_FAILED_HEADER_READ    (2)
 
 #include <string.h>
 #include <TinyGSM.h>
@@ -13,9 +14,10 @@ class HTTPS {
     public:
     const static int _httpsTimeout = 30000L;
     static std::string get(TinyGsm &sim_modem, HttpClient &http_client, const char * resource);
-    static std::string postJSON(TinyGsm &sim_modem, HttpClient &http_client, const char * endPoint, const char * requestBody, std::string currentToken);
+    static std::string postJSON(TinyGsm &sim_modem, HttpClient &http_client, const char * endPoint, std::string requestBody, std::string currentToken="");
     static std::string print(TinyGsm &sim_modem, HttpClient &http_client, const char * requestBody);
     static bool download(TinyGsm &sim_modem, HttpClient &http_client, const char * resource, const char * filePath, uint32_t knownCRC32=0);
+    static void readHeaders(HttpClient &http_client);
 
     private:
     HTTPS();
@@ -61,9 +63,37 @@ std::string HTTPS::postJSON(TinyGsm &sim_modem, HttpClient &http_client, const c
     }
     http_client.endRequest();
     http_client.write((const byte*)requestBody.c_str(), requestBody.length());
-    int status = http_client.responseStatusCode();
+    int statusCode = http_client.responseStatusCode();
+    log_i("Status code: %i", statusCode);
+
+    if (statusCode == 200) {
+        HTTPS::readHeaders(http_client);
+        if (http_client.isResponseChunked()) {
+            log_d("The response is chunked");
+        }
+        std::string responseBody = http_client.responseBody().c_str();
+        log_i("Response: %s", responseBody.c_str());
+        log_d("Body length is: %i", responseBody.length());
+        if (responseBody.length() > 0) {
+            return responseBody;
+        } else {
+            return "";
+        }
+    }
+    return "";
 }
 
+/**
+ * @brief A simple API for sending a manually contructed request.
+ * The request
+ * 
+ * @param sim_modem 
+ * @param http_client 
+ * @param requestBody 
+ * @return std::string 
+ * @throws HTTPS_NO_GPRS_CONN == 0
+ * @throws HTTPS_NONE_200_RESP == 1
+ */
 std::string HTTPS::print(TinyGsm &sim_modem, HttpClient &http_client, const char * requestBody) {
     if (sim_modem.isGprsConnected()) {
         log_i("Attempting to download");
@@ -72,7 +102,6 @@ std::string HTTPS::print(TinyGsm &sim_modem, HttpClient &http_client, const char
         log_i("Status code: %i", statusCode);
         if (statusCode == 200) {
             std::string response;
-            std::string accessToken;
             unsigned long timeoutStart = millis();
             char c;
 
@@ -111,7 +140,6 @@ bool HTTPS::download(TinyGsm &sim_modem, HttpClient &http_client, const char * r
             log_i("Content length: %i", contentLength);
             unsigned long timeoutStart = millis();
             int bin;
-            // char c;
             CRC32 crc;
             uint8_t wbuf[512];
             uint32_t readLength = 0;
@@ -127,10 +155,6 @@ bool HTTPS::download(TinyGsm &sim_modem, HttpClient &http_client, const char * r
                     readLength += file.write(wbuf, bin);
                     crc.update(bin);
                     Serial.print(bin);
-                    // c = http_client.read(wbuf, sizeof(wbuf));
-                    // readLength += file.write(wbuf, c);
-                    // crc.update(c);
-                    // Serial.print(c);
                     timeoutStart = millis();
                 } else {
                     vTaskDelay(50);
@@ -166,5 +190,31 @@ bool HTTPS::download(TinyGsm &sim_modem, HttpClient &http_client, const char * r
         }
     } else {
         throw HTTPS_NO_GPRS_CONN;
+    }
+}
+
+/**
+ * @brief Read the HTTP response headers to the output stream,
+ * errors if times out or 
+ * 
+ * @param http_client 
+ */
+void HTTPS::readHeaders(HttpClient &http_client) {
+    std::string headerName, headerValue;
+    try {
+        unsigned long headerTimeout = millis();
+        while (http_client.headerAvailable() && millis() - headerTimeout < HTTPS::_httpsTimeout) {
+            headerName = http_client.readHeaderName().c_str();
+            headerValue = http_client.readHeaderValue().c_str();
+            log_i("%s : %s", headerName.c_str(), headerValue.c_str());
+        }
+
+        int length = http_client.contentLength();
+
+        if (length >= 0) {
+            log_i("Content length: %i", length);
+        }
+    } catch(uint8_t error) {
+        log_e("failed when reading response headers, last header read: '%s': '%s'", headerName.c_str(), headerValue.c_str());
     }
 }
