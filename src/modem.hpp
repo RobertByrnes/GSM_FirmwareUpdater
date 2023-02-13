@@ -26,7 +26,7 @@ class Modem
 {
     public:
     static void setupModem();
-    static void connect(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
+    static bool connect(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
     static void awaitNetworkAvailability(TinyGsm &sim_modem, long wait=15000L);
     static void connectModemToGPRS(TinyGsm &sim_modem);
     static void connectToAPN(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
@@ -72,7 +72,7 @@ void Modem::setupModem()
  * @param gprs_pass 
  * @param ledPin 
  */
-void Modem::connect(
+bool Modem::connect(
     TinyGsm &sim_modem, 
     const char *apn, 
     const char *gprs_user, 
@@ -83,13 +83,17 @@ void Modem::connect(
         Modem::awaitNetworkAvailability(sim_modem);
         Modem::connectModemToGPRS(sim_modem);
         Modem::connectToAPN(sim_modem, apn, gprs_user, gprs_pass, LED_PIN);
+        return true;
     } catch (uint8_t error) {
         switch (error) {
             case MODEM_NO_NETWORK_CONN: log_e("The modem could not find a network"); break;
             case MODEM_NO_GPRS_CONN: log_e("The modem could not connect to the GPRS network"); break;
             case MODEM_NO_APN_CONN: log_e("The modem could not connect to the APN");
         }
+    } catch(...) {
+        log_e("Errored in Modem::connect and not caught with custom error handler");
     }
+    return false;
 }
 
 /**

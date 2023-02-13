@@ -2,7 +2,6 @@
 #define MODEM_UART Serial1
 
 #include "SSLClient.h"
-#include <root_ca.h>
 #include <modem.hpp>
 #include <https.hpp>
 #include <gsm_firmwareupdater.h>
