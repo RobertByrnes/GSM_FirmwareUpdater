@@ -39,7 +39,7 @@ class HTTPS {
 
     private:
     HTTPS();
-    static bool HTTPS::responseOK(int statusCode);
+    static bool responseOK(int statusCode);
 };
 
 /**
