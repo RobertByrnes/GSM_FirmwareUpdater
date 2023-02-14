@@ -104,6 +104,7 @@ void setup()
     RUN_TEST(test_connect);
     RUN_TEST(test_logModemInformationWithoutError);
     RUN_TEST(test_logConnectionInformationWithoutError);
+    UNITY_END();
 }
 
 void loop() {}

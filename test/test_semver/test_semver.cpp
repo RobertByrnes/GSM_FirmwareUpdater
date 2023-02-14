@@ -141,6 +141,7 @@ void setup()
     RUN_TEST(test_version_2_less_than_version_7);
     RUN_TEST(test_version_3_less_than_version_6);
     RUN_TEST(test_version_4_less_than_version_5);
+    UNITY_END();
 }
 
 void loop() {}
