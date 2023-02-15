@@ -11,7 +11,17 @@
 #define IP5306_ADDR 0x75
 #define IP5306_REG_SYS_CTL0 0x00
 #define TINY_GSM_RX_BUFFER 1024
-#define LED_PIN 13
+#define MODEM_LED_PIN 13
+
+// SIM808
+// #define TINY_GSM_MODEM_SIM808
+// #define SIM808_BAUD_RATE 115200
+// #define SIM808_TX 17
+// #define SIM808_RX 16
+// #define SIM808_SERIAL Serial1
+// #define MODEM_PWRKEY 15
+// #define TINY_GSM_RX_BUFFER 1024
+// #define MODEM_LED_PIN 2
 
 #define MODEM_NO_NETWORK_CONN (0)
 #define MODEM_NO_GPRS_CONN (1)
@@ -32,35 +42,40 @@ class Modem
     static void connectToAPN(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
     static void logConnectionInformation(TinyGsm &sim_modem);
     static void logModemInformation(TinyGsm &sim_modem);
+    #if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
     static bool setupPMU();
+    #endif
 
     private:
     Modem() {}
 };
 
-// Modem initial setup (cold start)
+/**
+ * @brief Modem initial setup (cold start)
+ * @return void
+ */
 void Modem::setupModem()
 {
-    pinMode(MODEM_RST, OUTPUT);
-    pinMode(MODEM_PWRKEY, OUTPUT);
+    #if defined(MODEM_RST) // Reset pin high
+        pinMode(MODEM_RST, OUTPUT);
+        digitalWrite(MODEM_RST, HIGH);
+    #endif
+    #if defined(MODEM_PWRKEY) // Pull down PWRKEY for more than 1 second according to manual requirements
+        pinMode(MODEM_PWRKEY, OUTPUT);
+        digitalWrite(MODEM_PWRKEY, HIGH);
+        delay(200);
+        digitalWrite(MODEM_PWRKEY, LOW);
+        delay(1200);
+        digitalWrite(MODEM_PWRKEY, HIGH);
+    #endif 
+    #if defined(MODEM_POWER_ON) // Turn on the Modem power first
     pinMode(MODEM_POWER_ON, OUTPUT);
-    pinMode(LED_PIN, OUTPUT);
-
-    // Reset pin high
-    digitalWrite(MODEM_RST, HIGH);
-
-    // Turn on the Modem power first
     digitalWrite(MODEM_POWER_ON, HIGH);
-
-    // Pull down PWRKEY for more than 1 second according to manual requirements
-    digitalWrite(MODEM_PWRKEY, HIGH);
-    delay(200);
-    digitalWrite(MODEM_PWRKEY, LOW);
-    delay(1200);
-    digitalWrite(MODEM_PWRKEY, HIGH);
-
-    // Initialize the indicator as an output
-    digitalWrite(LED_PIN, LOW);
+    #endif
+    #if defined(MODEM_LED_PIN) // Initialize the indicator as an output
+    pinMode(MODEM_LED_PIN, OUTPUT);
+    digitalWrite(MODEM_LED_PIN, LOW);
+    #endif
 }
 
 /**
@@ -82,7 +97,7 @@ bool Modem::connect(
     try {
         Modem::awaitNetworkAvailability(sim_modem);
         Modem::connectModemToGPRS(sim_modem);
-        Modem::connectToAPN(sim_modem, apn, gprs_user, gprs_pass, LED_PIN);
+        Modem::connectToAPN(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
         return true;
     } catch (uint8_t error) {
         switch (error) {
@@ -181,6 +196,8 @@ void Modem::logModemInformation(TinyGsm &sim_modem) {
     log_i("Modem Info: %s", sim_modem.getModemInfo().c_str());
 }
 
+
+#if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
 /**
  * @brief Power configuration for SIM800L_IP5306_VERSION_20190610 (v1.3) board.
  * 
@@ -200,3 +217,4 @@ bool Modem::setupPMU()
     }
     return Wire.endTransmission() == 0;
 }
+#endif

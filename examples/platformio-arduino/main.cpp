@@ -92,7 +92,7 @@ void loop()
         sim_modem.simUnlock(simPin);
     }
 
-    Modem::connect(sim_modem, apn, gprs_user, gprs_pass, LED_PIN);
+    Modem::connect(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
     Modem::logConnectionInformation(sim_modem);
     
     try {
@@ -108,7 +108,7 @@ void loop()
 
         sim_modem.gprsDisconnect();
         log_i("GPRS disconnected");
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(MODEM_LED_PIN, LOW);
     } catch (uint8_t error) {
         log_e("GPRS disconnected during request, failed");
     }
