@@ -31,23 +31,24 @@
 #include <Wire.h>
 #include <TinyGSM.h>
 #include <TinyGsmClient.h>
+#include <interface_modem.hpp>
 
-class Modem
+class Modem: public ModemInterface
 {
     public:
-    static void setupModem();
-    static bool connect(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
-    static void awaitNetworkAvailability(TinyGsm &sim_modem, long wait=15000L);
-    static void connectModemToGPRS(TinyGsm &sim_modem);
-    static void connectToAPN(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
-    static void logConnectionInformation(TinyGsm &sim_modem);
-    static void logModemInformation(TinyGsm &sim_modem);
+    Modem() {}
+    void setupModem();
+    bool connect(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
+    void awaitNetworkAvailability(TinyGsm &sim_modem, long wait=15000L);
+    void connectModemToGPRS(TinyGsm &sim_modem);
+    void connectToAPN(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
+    void logConnectionInformation(TinyGsm &sim_modem);
+    void logModemInformation(TinyGsm &sim_modem);
     #if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
-    static bool setupPMU();
+    bool setupPMU();
     #endif
 
     private:
-    Modem() {}
 };
 
 /**
@@ -95,9 +96,9 @@ bool Modem::connect(
     uint16_t ledPin
 ) {
     try {
-        Modem::awaitNetworkAvailability(sim_modem);
-        Modem::connectModemToGPRS(sim_modem);
-        Modem::connectToAPN(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
+        this->awaitNetworkAvailability(sim_modem);
+        this->connectModemToGPRS(sim_modem);
+        this->connectToAPN(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
         return true;
     } catch (uint8_t error) {
         switch (error) {

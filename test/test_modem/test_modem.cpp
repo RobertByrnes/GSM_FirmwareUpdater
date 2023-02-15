@@ -1,16 +1,24 @@
-#include <unity.h>
+#include <gtest/gtest.h>
+
+// TEST(...)
+// TEST_F(...)
+
+#if defined(ARDUINO)
+#include <Arduino.h>
+#endif
+
 #include <modem.hpp>
 
 #define MODEM_UART Serial1
-
+Modem modem;
 TinyGsm sim_modem(MODEM_UART);
 const char *apn = "pkp18-inet";
 const char *gprs_user = "";
 const char *gprs_pass = "";
 uint16_t ledPin = 13;
 
-void setUp(void) { 
-    Modem::setupModem();
+void setUp(void) {
+    modem.setupModem();
     MODEM_UART.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
 }
 
@@ -18,93 +26,108 @@ void tearDown(void) {
     sim_modem.init();
 }
 
-void test_setupModem(void)
+TEST(IsModemTest, setupModem)
 {
+    setUp();
     // Check if the pin values have been set as expected
-    TEST_ASSERT_EQUAL(HIGH, digitalRead(MODEM_RST));
-    TEST_ASSERT_EQUAL(HIGH, digitalRead(MODEM_POWER_ON));
-    TEST_ASSERT_EQUAL(HIGH, digitalRead(MODEM_PWRKEY));
-    TEST_ASSERT_EQUAL(LOW, digitalRead(LED_PIN));
+    EXPECT_EQ(HIGH, digitalRead(MODEM_RST));
+    EXPECT_EQ(HIGH, digitalRead(MODEM_POWER_ON));
+    EXPECT_EQ(HIGH, digitalRead(MODEM_PWRKEY));
+    EXPECT_EQ(LOW, digitalRead(MODEM_LED_PIN));
+    tearDown();
 }
 
-void test_modemStartsNotConnected(void)
+TEST(IsModemTest, modemStartsNotConnected)
 {
-    TEST_ASSERT_EQUAL(sim_modem.getRegistrationStatus(), RegStatus::REG_NO_RESULT);
+    setUp();
+    EXPECT_EQ(sim_modem.getRegistrationStatus(), RegStatus::REG_NO_RESULT);
+    tearDown();
 }
 
-// void test_awaitNetworkAvailability(void)
-// {
-//     bool exceptionThrown = false;
-//     try {
-//         Modem::awaitNetworkAvailability(sim_modem, 10000L);
-//     } catch (uint8_t error) {
-//         exceptionThrown = true;
-//     }
-//     TEST_ASSERT_FALSE(exceptionThrown);
-// }
-
-void test_connectModemToGPRS(void)
+TEST(IsModemTest, awaitNetworkAvailability)
 {
+    bool exceptionThrown = false;
+    try {
+        modem.awaitNetworkAvailability(sim_modem, 30000L);
+    } catch (uint8_t error) {
+        exceptionThrown = true;
+    }
+    ASSERT_FALSE(exceptionThrown);
+}
+
+TEST(IsModemTest, connectModemToGPRS)
+{
+    setUp();
     // TODO: Write a test for connectModemToGPRS
+    tearDown();
 }
 
-void test_connectToAPN(void)
+TEST(IsModemTest, connectToAPN)
 {
+    setUp();
     // TODO: Write a test for connectToAPN
+    tearDown();
 }
 
-void test_logConnectionInformationWithoutError(void)
+TEST(IsModemTest, logConnectionInformationWithoutError)
 {
+    setUp();
     bool errored = false;
     try {
-        Modem::logConnectionInformation(sim_modem);
+        modem.logConnectionInformation(sim_modem);
     } catch (...) {
         errored = true;
     }
-    TEST_ASSERT_EQUAL(errored, false);
+    EXPECT_EQ(errored, false);
+    tearDown();
 }
 
-void test_logModemInformationWithoutError(void)
+TEST(IsModemTest, logModemInformationWithoutError)
 {
+    setUp();
     bool errored = false;
     try {
-        Modem::logModemInformation(sim_modem);
+        modem.logModemInformation(sim_modem);
     } catch (...) {
         errored = true;
     }
-    TEST_ASSERT_EQUAL(errored, false);
+    EXPECT_EQ(errored, false);
+    tearDown();
 }
 
-void test_setupPMU(void)
+TEST(IsModemTest, setupPMU)
 {
-    TEST_ASSERT_TRUE(Modem::setupPMU());
+    setUp();
+    EXPECT_TRUE(modem.setupPMU());
+    tearDown();
 }
 
-void test_connect(void)
+TEST(IsModemTest, connect)
 {
-    Modem::connect(
+    setUp();
+    modem.connect(
         sim_modem, 
         apn, 
         gprs_user, 
         gprs_pass, 
         ledPin
     );
-    TEST_ASSERT_EQUAL_STRING(sim_modem.getOperator().c_str(), "");
+    EXPECT_STREQ(sim_modem.getOperator().c_str(), "");
+    tearDown();
 }
 
 void setup()
-{
-    UNITY_BEGIN();
-    RUN_TEST(test_setupModem);
-    RUN_TEST(test_setupPMU);
-    RUN_TEST(test_modemStartsNotConnected);
-    // RUN_TEST(test_awaitNetworkAvailability);
-    // RUN_TEST(test_connectModemToGPRS);
-    // RUN_TEST(test_connectToAPN);
-    RUN_TEST(test_connect);
-    RUN_TEST(test_logModemInformationWithoutError);
-    RUN_TEST(test_logConnectionInformationWithoutError);
-    UNITY_END();
+{   
+    Serial.begin(115200);
+    ::testing::InitGoogleTest();
 }
 
-void loop() {}
+void loop()
+{
+  // Run tests
+  if (RUN_ALL_TESTS())
+  ;
+
+  // sleep for 1 sec
+  delay(1000);
+}
