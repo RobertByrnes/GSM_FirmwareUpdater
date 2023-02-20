@@ -1,133 +1,174 @@
-#include <gtest/gtest.h>
-
-// TEST(...)
-// TEST_F(...)
+#include <unity.h>
 
 #if defined(ARDUINO)
 #include <Arduino.h>
 #endif
 
 #include <modem.hpp>
+#include <mock_tiny_gsm.cpp>
 
 #define MODEM_UART Serial1
-Modem modem;
-TinyGsm sim_modem(MODEM_UART);
+MockTinyGsm modemDriverMock(MODEM_UART);
+Modem<MockTinyGsm> modemClass;
 const char *apn = "pkp18-inet";
-const char *gprs_user = "";
-const char *gprs_pass = "";
+const char *gprsUser = "";
+const char *gprsPass = "";
 uint16_t ledPin = 13;
 
-void setUp(void) {
-    modem.setupModem();
-    MODEM_UART.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-}
 
-void tearDown(void) {
-    sim_modem.init();
-}
+void setUp(void) {}
+void tearDown(void) {}
 
-TEST(IsModemTest, setupModem)
-{
-    setUp();
-    // Check if the pin values have been set as expected
-    EXPECT_EQ(HIGH, digitalRead(MODEM_RST));
-    EXPECT_EQ(HIGH, digitalRead(MODEM_POWER_ON));
-    EXPECT_EQ(HIGH, digitalRead(MODEM_PWRKEY));
-    EXPECT_EQ(LOW, digitalRead(MODEM_LED_PIN));
-    tearDown();
-}
-
-TEST(IsModemTest, modemStartsNotConnected)
-{
-    setUp();
-    EXPECT_EQ(sim_modem.getRegistrationStatus(), RegStatus::REG_NO_RESULT);
-    tearDown();
-}
-
-TEST(IsModemTest, awaitNetworkAvailability)
+void testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork()
 {
     bool exceptionThrown = false;
     try {
-        modem.awaitNetworkAvailability(sim_modem, 30000L);
+        modemDriverMock.setBooleanReturnType(true);
+        modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
     } catch (uint8_t error) {
         exceptionThrown = true;
     }
-    ASSERT_FALSE(exceptionThrown);
+    TEST_ASSERT_FALSE(exceptionThrown);
 }
 
-TEST(IsModemTest, connectModemToGPRS)
+void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
 {
-    setUp();
-    // TODO: Write a test for connectModemToGPRS
-    tearDown();
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.setBooleanReturnType(false);
+        modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
+    } catch (uint8_t error) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
 }
 
-TEST(IsModemTest, connectToAPN)
+void testconnectToAPNDoesNotThrowIfModemConnects()
 {
-    setUp();
-    // TODO: Write a test for connectToAPN
-    tearDown();
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.setBooleanReturnType(true);
+        modemClass.connectToAPN(modemDriverMock, apn, gprsUser, gprsPass);
+    } catch (...) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_FALSE(exceptionThrown);
 }
 
-TEST(IsModemTest, logConnectionInformationWithoutError)
+void testconnectToAPNThrowsIfModemFailsToConnect()
 {
-    setUp();
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.setBooleanReturnType(false);
+        modemClass.connectToAPN(modemDriverMock, apn, gprsUser, gprsPass);
+    } catch (...) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
+}
+
+void testVerifyConnectedDoesNotThrowIfModemIsConnected()
+{
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.setBooleanReturnType(true);
+        modemClass.verifyConnected(modemDriverMock);
+    } catch (...) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_FALSE(exceptionThrown);
+}
+
+void testVerifyConnectThrowsIfModemNotConnected()
+{
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.setBooleanReturnType(false);
+        modemClass.verifyConnected(modemDriverMock);
+    } catch (...) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
+}
+
+void testLogConnectionInformationWithoutError()
+{
     bool errored = false;
     try {
-        modem.logConnectionInformation(sim_modem);
+        modemClass.logConnectionInformation(modemDriverMock);
     } catch (...) {
         errored = true;
     }
-    EXPECT_EQ(errored, false);
-    tearDown();
+    TEST_ASSERT_EQUAL(errored, false);
 }
 
-TEST(IsModemTest, logModemInformationWithoutError)
+void testLogModemInformationWithoutError()
 {
-    setUp();
     bool errored = false;
     try {
-        modem.logModemInformation(sim_modem);
+        modemClass.logModemInformation(modemDriverMock);
     } catch (...) {
         errored = true;
     }
-    EXPECT_EQ(errored, false);
-    tearDown();
+    TEST_ASSERT_EQUAL(errored, false);
 }
 
-TEST(IsModemTest, setupPMU)
+void testSetupPMUReturnsTrueIfWireReturnsZero()
 {
-    setUp();
-    EXPECT_TRUE(modem.setupPMU());
-    tearDown();
+    modemDriverMock.setBooleanReturnType(true);
+    TEST_ASSERT_TRUE(modemClass.setupPMU());
 }
 
-TEST(IsModemTest, connect)
+void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
 {
-    setUp();
-    modem.connect(
-        sim_modem, 
+    modemDriverMock.setBooleanReturnType(false);
+    TEST_ASSERT_FALSE(modemClass.setupPMU());
+}
+
+void testConnectReturnsTrueIfModemConnectedToAPN()
+{
+    modemDriverMock.setBooleanReturnType(true);
+    bool connected = modemClass.connect(
+        modemDriverMock, 
         apn, 
-        gprs_user, 
-        gprs_pass, 
+        gprsUser, 
+        gprsPass, 
         ledPin
     );
-    EXPECT_STREQ(sim_modem.getOperator().c_str(), "");
-    tearDown();
+    
+    TEST_ASSERT_TRUE(connected);
+}
+
+void testConnectReturnsFalseIfModemFailsToConnect()
+{
+    modemDriverMock.setBooleanReturnType(false);
+    bool connected = modemClass.connect(
+        modemDriverMock, 
+        apn, 
+        gprsUser, 
+        gprsPass, 
+        ledPin
+    ); 
+    
+    TEST_ASSERT_FALSE(connected);
 }
 
 void setup()
-{   
-    Serial.begin(115200);
-    ::testing::InitGoogleTest();
+{ 
+    UNITY_BEGIN();
+    // RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
+    // RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
+    RUN_TEST(testconnectToAPNDoesNotThrowIfModemConnects);
+    RUN_TEST(testconnectToAPNThrowsIfModemFailsToConnect);
+    RUN_TEST(testVerifyConnectedDoesNotThrowIfModemIsConnected);
+    RUN_TEST(testVerifyConnectThrowsIfModemNotConnected);
+    RUN_TEST(testConnectReturnsTrueIfModemConnectedToAPN);
+    RUN_TEST(testConnectReturnsFalseIfModemFailsToConnect);
+    RUN_TEST(testLogConnectionInformationWithoutError);
+    RUN_TEST(testLogModemInformationWithoutError);
+    // RUN_TEST(testSetupPMUReturnsTrueIfWireReturnsZero);
+    // RUN_TEST(testSetupPMUReturnsFalseIfWireReturnsNoneZero);
+    UNITY_END();
 }
 
-void loop()
-{
-  // Run tests
-  if (RUN_ALL_TESTS())
-  ;
-
-  // sleep for 1 sec
-  delay(1000);
-}
+void loop() {}

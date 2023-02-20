@@ -1,11 +1,9 @@
-#include <gtest/gtest.h>
-
-// TEST(...)
-// TEST_F(...)
+#include <unity.h>
 
 #if defined(ARDUINO)
 #include <Arduino.h>
 #endif
+
 #include <semver.hpp>
 
 std::string version1;
@@ -31,114 +29,124 @@ void setUp(void)
 
 void tearDown(void) {}
 
-TEST(SemverTests, version_2_greater_than_version_1)
+void testVersion2GreaterThanVersion1()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version1, version2));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version1, version2));
 }
 
-TEST(SemverTests, version_3_greater_than_version_2)
+void testVersion3GreaterThanVersion2()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version2, version3));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version2, version3));
 }
 
-TEST(SemverTests, version_4_greater_than_version_3)
+void testVersion4GreaterThanVersion3()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version3, version4));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version3, version4));
 }
 
-TEST(SemverTests, version_5_greater_than_version_4)
+void testVersion5GreaterThanVersion4()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version4, version5));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version4, version5));
 }
 
-TEST(SemverTests, version_6_greater_than_version_5)
+void testVersion6GreaterThanVersion5()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version5, version6));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version5, version6));
 }
 
-TEST(SemverTests, version_7_greater_than_version_6)
+void testVersion7GreaterThanVersion6()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version6, version7));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version6, version7));
 }
 
-TEST(SemverTests, version_8_greater_than_version_7)
+void testVersion8GreaterThanVersion7()
 {
-    EXPECT_EQ(-1, Semver::versionCompare(version7, version8));
+    TEST_ASSERT_EQUAL(-1, Semver::versionCompare(version7, version8));
 }
 
-TEST(SemverTests, version_1_equals_version_1)
+void testVersion1EqualsVersion1()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version1, version1));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version1, version1));
 }
 
-TEST(SemverTests, version_2_equals_version_2)
+void testVersion2EqualsVersion2()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version2, version2));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version2, version2));
 }
 
-TEST(SemverTests, version_3_equals_version_3)
+void testVersion3EqualsVersion3()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version3, version3));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version3, version3));
 }
 
-TEST(SemverTests, version_4_equals_version_4)
+void testVersion4EqualsVersion4()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version4, version4));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version4, version4));
 }
 
-TEST(SemverTests, version_5_equals_version_5)
+void testVersion5EqualsVersion5()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version5, version5));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version5, version5));
 }
 
-TEST(SemverTests, version_6_equals_version_6)
+void testVersion6EqualsVersion6()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version6, version6));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version6, version6));
 }
 
-TEST(SemverTests, version_7_equals_version_7)
+void testVersion7EqualsVersion7()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version7, version7));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version7, version7));
 }
 
-TEST(SemverTests, version_8_equals_version_8)
+void testVersion8EqualsVersion8()
 {
-    EXPECT_EQ(0, Semver::versionCompare(version8, version8));
+    TEST_ASSERT_EQUAL(0, Semver::versionCompare(version8, version8));
 }
 
-TEST(SemverTests, version_1_less_than_version_8)
+void testVersion1LessThanVersion8()
 {
-    EXPECT_EQ(1, Semver::versionCompare(version8, version1));
+    TEST_ASSERT_EQUAL(1, Semver::versionCompare(version8, version1));
 }
 
-TEST(SemverTests, version_2_less_than_version_7)
+void testVersion2LessThanVersion7()
 {
-    EXPECT_EQ(1, Semver::versionCompare(version7, version2));
+    TEST_ASSERT_EQUAL(1, Semver::versionCompare(version7, version2));
 }
 
-TEST(SemverTests, version_3_less_than_version_6)
+void testVersion3LessThanVersion6()
 {
-    EXPECT_EQ(1, Semver::versionCompare(version6, version3));
+    TEST_ASSERT_EQUAL(1, Semver::versionCompare(version6, version3));
 }
 
-TEST(SemverTests, version_4_less_than_version_5)
+void testVersion4LessThanVersion5()
 {
-    EXPECT_EQ(1, Semver::versionCompare(version5, version4));
+    TEST_ASSERT_EQUAL(1, Semver::versionCompare(version5, version4));
 }
 
 void setup()
 {
-    setUp();
-    Serial.begin(115200);
-    ::testing::InitGoogleTest();
+    UNITY_BEGIN();
+    RUN_TEST(testVersion2GreaterThanVersion1);
+    RUN_TEST(testVersion3GreaterThanVersion2);
+    RUN_TEST(testVersion4GreaterThanVersion3);
+    RUN_TEST(testVersion5GreaterThanVersion4);
+    RUN_TEST(testVersion6GreaterThanVersion5);
+    RUN_TEST(testVersion7GreaterThanVersion6);
+    RUN_TEST(testVersion8GreaterThanVersion7);
+    RUN_TEST(testVersion1EqualsVersion1);
+    RUN_TEST(testVersion2EqualsVersion2);
+    RUN_TEST(testVersion3EqualsVersion3);
+    RUN_TEST(testVersion4EqualsVersion4);
+    RUN_TEST(testVersion5EqualsVersion5);
+    RUN_TEST(testVersion6EqualsVersion6);
+    RUN_TEST(testVersion7EqualsVersion7);
+    RUN_TEST(testVersion8EqualsVersion8);
+    RUN_TEST(testVersion1LessThanVersion8);
+    RUN_TEST(testVersion2LessThanVersion7);
+    RUN_TEST(testVersion3LessThanVersion6);
+    RUN_TEST(testVersion4LessThanVersion5);
+    UNITY_END();
 }
 
-void loop()
-{
-  // Run tests
-  if (RUN_ALL_TESTS())
-  ;
-
-  // sleep for 1 sec
-  delay(1000);
-}
+void loop() {}
