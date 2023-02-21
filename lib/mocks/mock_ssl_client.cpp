@@ -1,9 +1,12 @@
 #include <Arduino.h>
+#include <mock_tiny_gsm.hpp>
 
+
+template<class T>
 class MockSSLClient : public Client  {
 public:
     MockSSLClient() {}
-    MockSSLClient(MockTinyGsmClient* client) {}
+    MockSSLClient(T* client) {}
     ~MockSSLClient() {}
     int connect(IPAddress ip, uint16_t port) { return 0; };
     int connect(const char *host, uint16_t port) { return 0; };
@@ -16,5 +19,5 @@ public:
     void flush() {};
     void stop() {};
     uint8_t connected() { return 0; };
-    operator bool() {};
+    operator bool() { return bool(true); };
 };

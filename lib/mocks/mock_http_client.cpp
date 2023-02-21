@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <PsuedoType.hpp>
 
 static const int MOCK_HTTP_SUCCESS = 0;
 static const int MOCK_HTTP_ERROR_CONNECTION_FAILED = -1;
@@ -6,7 +7,7 @@ static const int MOCK_HTTP_ERROR_API = -2;
 static const int MOCK_HTTP_ERROR_TIMED_OUT = -3; 
 static const int MOCK_HTTP_ERROR_INVALID_RESPONSE = -4;
 
-class MockHttpClient : public Client {
+class MockHttpClient : public PsuedoTypeBaseClass, public Client {
     public:
     // Mock return vals
     int _returnIntegerType = 0;
@@ -29,7 +30,7 @@ class MockHttpClient : public Client {
     void flush() {};
     void stop() {};
     uint8_t connected() { return 0; };
-    operator bool() {}; // client end
+    operator bool() { return bool(true); }; // client end
 
     // Mock methods
     int responseStatusCode() { return _returnIntegerType; }

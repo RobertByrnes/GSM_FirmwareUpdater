@@ -5,7 +5,7 @@
 #endif
 
 #include <modem.hpp>
-#include <mock_tiny_gsm.cpp>
+#include <mock_tiny_gsm.hpp>
 #include <mock_ssl_client.cpp>
 #include <mock_http_client.cpp>
 
@@ -20,7 +20,7 @@ uint16_t ledPin = 13;
 
 MockTinyGsm modemDriverMock(MODEM_UART);
 MockTinyGsmClient gsmTransportLayerMock(modemDriverMock);
-MockSSLClient secureLayerMock(&gsmTransportLayerMock);
+MockSSLClient<MockTinyGsmClient> secureLayerMock(&gsmTransportLayerMock);
 MockHttpClient httpClient = MockHttpClient(secureLayerMock, hostName, port);
 Modem<MockTinyGsm> modemClass;
 
