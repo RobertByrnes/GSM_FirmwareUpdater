@@ -43,10 +43,15 @@ public:
     // inline IPAddress localIP() { return _ipAddress; }
     // inline int16_t getSignalQuality() { return _fakeSignalQuality; }
     // inline String getModemName() { return _stringReturnType; }
-    // inline String getModemInfo() { return _stringReturnType; }
+    // inline String geWtModemInfo() { return _stringReturnType; }
     // inline bool isNetworkConnected() { return _booleanReturnType; }
 
-    inline bool init() { ReturnType<bool> returnType; return returnType._returnValue; }
+    inline bool init() {
+      std::map<const char *, bool> willReturn;
+      willReturn = ReturnType("init", true);
+      storage<const char *, >
+    }
+
     inline MockRegStatus getRegistrationStatus() { ReturnType<MockRegStatus> returnType; return returnType._returnValue; }
     inline bool waitForNetwork(uint32_t timeout_ms, bool check_signal=false) { ReturnType<bool> returnType; return returnType._returnValue;  }
     bool gprsConnect(const char* apn, const char* user, const char* pwd) { ReturnType<bool> returnType; return returnType._returnValue;  }
