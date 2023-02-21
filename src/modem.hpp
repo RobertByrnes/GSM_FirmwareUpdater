@@ -29,8 +29,11 @@
 
 // Include after ModemDriver definitions
 #include <Wire.h>
+
+#if defined(ARDUINO)
 #include <TinyGsm.h>
 #include <TinyGsmClient.h>
+#endif
 
 template <class ModemDriver>
 class Modem {
@@ -45,7 +48,9 @@ class Modem {
     void logConnectionInformation(ModemDriver &sim_modem);
     void logModemInformation(ModemDriver &sim_modem);
     #if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
-    bool setupPMU();
+    
+    template <typename T>
+    bool setupPMU(T wire);
     #endif
 };
 
@@ -209,17 +214,18 @@ void Modem<ModemDriver>::logModemInformation(ModemDriver &sim_modem) {
  * @return false 
  */
 template <class ModemDriver>
-bool Modem<ModemDriver>::setupPMU()
+template <typename T>
+bool Modem<ModemDriver>::setupPMU(T wire)
 {
     bool en = true;
-    Wire.begin(I2C_SDA, I2C_SCL);
-    Wire.beginTransmission(IP5306_ADDR);
-    Wire.write(IP5306_REG_SYS_CTL0);
+    wire.begin(I2C_SDA, I2C_SCL);
+    wire.beginTransmission(IP5306_ADDR);
+    wire.write(IP5306_REG_SYS_CTL0);
     if (en) {
-        Wire.write(0x37);
+        wire.write(0x37);
     } else {
-        Wire.write(0x35);
+        wire.write(0x35);
     }
-    return Wire.endTransmission() == 0;
+    return wire.endTransmission() == 0;
 }
 #endif

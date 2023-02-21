@@ -63,7 +63,7 @@ void setup()
     ESP_UART.begin(115200);
     delay(100);
 
-    if (!modemClass.setupPMU()) { // Start board power management
+    if (!modemClass.setupPMU(Wire)) { // Start board power management
         log_w("Setting board power management error");
     }
 

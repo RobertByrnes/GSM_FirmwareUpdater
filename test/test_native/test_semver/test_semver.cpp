@@ -1,9 +1,4 @@
 #include <unity.h>
-
-#if defined(ARDUINO)
-#include <Arduino.h>
-#endif
-
 #include <semver.hpp>
 
 std::string version1;
@@ -124,8 +119,7 @@ void testVersion4LessThanVersion5()
     TEST_ASSERT_EQUAL(1, Semver::versionCompare(version5, version4));
 }
 
-void setup()
-{
+void runTests() {
     UNITY_BEGIN();
     RUN_TEST(testVersion2GreaterThanVersion1);
     RUN_TEST(testVersion3GreaterThanVersion2);
@@ -149,4 +143,19 @@ void setup()
     UNITY_END();
 }
 
+#if defined(ARDUINO)
+#include <Arduino.h>
+
+void setup()
+{
+    runTests();
+}
+
 void loop() {}
+
+#else
+int main(int argc, char **argv)
+{
+    runTests();
+}
+#endif

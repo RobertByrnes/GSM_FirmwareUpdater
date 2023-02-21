@@ -2,12 +2,14 @@
 
 #if defined(ARDUINO)
 #include <Arduino.h>
+#else
+#include <ArduinoFake.h>
 #endif
 
 #include <modem.hpp>
 #include <mock_tiny_gsm.hpp>
 
-#define MODEM_UART Serial1
+#define MODEM_UART Serial
 MockTinyGsm modemDriverMock(MODEM_UART);
 Modem<MockTinyGsm> modemClass;
 const char *apn = "pkp18-inet";
@@ -23,7 +25,7 @@ void testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(true);
+        modemDriverMock.returns("waitForNetwork", true);
         modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
     } catch (uint8_t error) {
         exceptionThrown = true;
@@ -35,7 +37,7 @@ void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(false);
+        modemDriverMock.returns("waitForNetwork", false);
         modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
     } catch (uint8_t error) {
         exceptionThrown = true;
@@ -47,7 +49,7 @@ void testconnectToAPNDoesNotThrowIfModemConnects()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(true);
+        modemDriverMock.returns("gprsConnect", true);
         modemClass.connectToAPN(modemDriverMock, apn, gprsUser, gprsPass);
     } catch (...) {
         exceptionThrown = true;
@@ -59,7 +61,7 @@ void testconnectToAPNThrowsIfModemFailsToConnect()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(false);
+        modemDriverMock.returns("gprsConnect", false);
         modemClass.connectToAPN(modemDriverMock, apn, gprsUser, gprsPass);
     } catch (...) {
         exceptionThrown = true;
@@ -71,7 +73,7 @@ void testVerifyConnectedDoesNotThrowIfModemIsConnected()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(true);
+        modemDriverMock.returns("isNetworkConnected", true);
         modemClass.verifyConnected(modemDriverMock);
     } catch (...) {
         exceptionThrown = true;
@@ -83,7 +85,7 @@ void testVerifyConnectThrowsIfModemNotConnected()
 {
     bool exceptionThrown = false;
     try {
-        modemDriverMock.returns(false);
+        modemDriverMock.returns("isNetworkConnected", false);
         modemClass.verifyConnected(modemDriverMock);
     } catch (...) {
         exceptionThrown = true;
@@ -115,19 +117,21 @@ void testLogModemInformationWithoutError()
 
 void testSetupPMUReturnsTrueIfWireReturnsZero()
 {
-    modemDriverMock.returns(true);
-    TEST_ASSERT_TRUE(modemClass.setupPMU());
+    modemDriverMock.returns("isNetworkConnected", true);
+    TEST_ASSERT_TRUE(modemClass.setupPMU(Wire));
 }
 
 void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
 {
-    modemDriverMock.returns(false);
-    TEST_ASSERT_FALSE(modemClass.setupPMU());
+    // modemDriverMock.returns(false);
+    TEST_ASSERT_FALSE(modemClass.setupPMU(Wire));
 }
 
 void testConnectReturnsTrueIfModemConnectedToAPN()
 {
-    modemDriverMock.returns(true);
+    modemDriverMock.returns("waitForNetwork", true);
+    modemDriverMock.returns("gprsConnect", true);
+    modemDriverMock.returns("isNetworkConnected", true);
     bool connected = modemClass.connect(
         modemDriverMock, 
         apn, 
@@ -141,7 +145,7 @@ void testConnectReturnsTrueIfModemConnectedToAPN()
 
 void testConnectReturnsFalseIfModemFailsToConnect()
 {
-    modemDriverMock.returns(false);
+    modemDriverMock.returns("waitForNetwork", false);
     bool connected = modemClass.connect(
         modemDriverMock, 
         apn, 
