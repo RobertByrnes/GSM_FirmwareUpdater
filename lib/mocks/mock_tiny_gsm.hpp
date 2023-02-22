@@ -20,18 +20,18 @@ class MockTinyGsm : public PsuedoTypeBaseClass {
 public:
     explicit MockTinyGsm(Stream& stream) {}
     ~MockTinyGsm() {}
-    inline bool init() { this->findReturnType("init"); return _booleanReturnType; }
-    // inline MockRegStatus getRegistrationStatus() { this->findReturnType("getRegistrationStatus"); return }
-    inline bool waitForNetwork(uint32_t timeout_ms, bool check_signal=false) { this->findReturnType("waitForNetwork"); return _booleanReturnType; }
-    bool gprsConnect(const char* apn, const char* user, const char* pwd) { this->findReturnType("gprsConnect"); return _booleanReturnType; }
-    String getSimCCID() { this->findReturnType("getSimCCID"); return _StringReturnType; }
-    String getIMEI() { this->findReturnType("getIMEI"); return _StringReturnType; }
-    String getOperator() { this->findReturnType("getOperator"); return _StringReturnType; }
-    inline IPAddress localIP() { this->findReturnType("localIP"); return _ipAddressReturnType; }
-    inline int16_t getSignalQuality() { this->findReturnType("getSignalQuality"); return _intReturnType; }
-    inline String getModemName() { this->findReturnType("getModemName"); return _StringReturnType; }
-    inline String getModemInfo() { this->findReturnType("getModemInfo"); return _StringReturnType; }
-    inline bool isNetworkConnected() { this->findReturnType("isNetworkConnected"); return _booleanReturnType; }
+    inline bool init() { return this->findReturnType<bool>("init"); }
+    inline MockRegStatus getRegistrationStatus() { this->findReturnType<bool>("getRegistrationStatus"); }
+    inline bool waitForNetwork(uint32_t timeout_ms, bool check_signal=false) { return this->findReturnType<bool>("waitForNetwork"); }
+    bool gprsConnect(const char* apn, const char* user, const char* pwd) { return this->findReturnType<bool>("gprsConnect"); }
+    String getSimCCID() { return this->findReturnType<String>("getSimCCID"); }
+    String getIMEI() { return this->findReturnType<String>("getIMEI"); }
+    String getOperator() { return this->findReturnType<String>("getOperator"); }
+    inline IPAddress localIP() { return this->findReturnType<IPAddress>("localIP"); }
+    inline int16_t getSignalQuality() { return this->findReturnType<int16_t>("getSignalQuality"); }
+    inline String getModemName() { this->findReturnType<String>("getModemName"); }
+    inline String getModemInfo() { this->findReturnType<String>("getModemInfo"); }
+    inline bool isNetworkConnected() { this->findReturnType<bool>("isNetworkConnected"); }
 };
 
 class MockTinyGsmClient {
