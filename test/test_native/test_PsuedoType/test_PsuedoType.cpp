@@ -28,20 +28,34 @@ void tearDown() {}
 void testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork()
 {
     bool exceptionThrown = false;
-    try {
+    int exception;
+    try {    
         modemDriverMock.returns("waitForNetwork", true);
         modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
-    } catch (uint8_t error) {
+    } catch (int exception) {
         exceptionThrown = true;
     }
     TEST_ASSERT_FALSE(exceptionThrown);
 }
 
+void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
+{
+    bool exceptionThrown = false;
+    int exception;
+    try {    
+        modemDriverMock.returns("waitForNetwork", true);
+        modemDriverMock.setException("waitForNetwork", MODEM_NO_NETWORK_CONN);
+        modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
+    } catch (int exception) {
+        exceptionThrown = true;
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
+}
+
 void runTests() {
     UNITY_BEGIN();
-    // RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
-    // RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
     RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
+    RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
     UNITY_END();
 }
 
