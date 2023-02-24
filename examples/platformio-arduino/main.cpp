@@ -7,8 +7,8 @@
 #include <gsm_firmwareupdater.h>
 
 const char apn[] = ""; 
-const char gprs_user[] = ""; 
-const char gprs_pass[] = "";
+const char gprsUser[] = ""; 
+const char gprsPass[] = "";
 const char hostname[] = "www.example.com";
 const char versionFileUrl[] = "/bin/firmware.txt";
 const char binaryFileUrl[] = "/bin/firmware.bin";
@@ -17,11 +17,11 @@ const char updateFilePath[] = "/update.bin";
 std::string currentFirmwareVersion = "1.0.1";
 int port = 443;
 
-TinyGsm sim_modem(MODEM_UART);
-TinyGsmClient gsm_transpor_layer(sim_modem);
-SSLClient secure_presentation_layer(&gsm_transpor_layer);
-HttpClient http_client = HttpClient(secure_presentation_layer, hostname, port);
-
+TinyGsm modemDriver(MODEM_UART);
+TinyGsmClient gsmTransportLayer(modemDriver);
+SSLClient secureLayer(&gsmTransportLayer);
+HttpClient httpClient = HttpClient(secureLayer, hostname, port);
+Modem<TinyGsm> modemClass;
 GSM_FirmwareUpdater updateHandler(currentFirmwareVersion);
 
 // CA Certificate for lets encrypt (valid until Jun  4 11:04:38 2035 GMT)
@@ -63,52 +63,52 @@ void setup()
     ESP_UART.begin(115200);
     delay(100);
 
-    if (!Modem::setupPMU()) { // Start board power management
+    if (!modemClass.setupPMU(Wire)) { // Start board power management
         log_w("Setting board power management error");
     }
 
     MODEM_UART.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX); // Set SIM module baud rate and UART pins
-    secure_presentation_layer.setCACert(root_ca);
-    Modem::setupModem();
+    secureLayer.setCACert(root_ca);
+    modemClass.setupModem();
     log_i("Firmware: v%s", currentFirmwareVersion.c_str());
 }
 
 void loop()
 {
     log_i("Initialising modem");
-    if (!sim_modem.init()) {
+    if (!modemDriver.init()) {
         log_w("fail. Restarting modem");
-        Modem::setupModem();
-        if (!sim_modem.restart()) {
+        modemClass.setupModem();
+        if (!modemDriver.restart()) {
             log_e("failed. Even after restart");
             return;
         }
     }
     log_i("Modem OK");
 
-    Modem::logModemInformation(sim_modem);
+    modemClass.logModemInformation(modemDriver);
  
-    if (strlen(simPin) && sim_modem.getSimStatus() != 3) { // Unlock SIM card with a PIN if needed
-        sim_modem.simUnlock(simPin);
+    if (strlen(simPin) && modemDriver.getSimStatus() != 3) { // Unlock SIM card with a PIN if needed
+        modemDriver.simUnlock(simPin);
     }
 
-    Modem::connect(sim_modem, apn, gprs_user, gprs_pass, LED_PIN);
-    Modem::logConnectionInformation(sim_modem);
+    modemClass.connect(modemDriver, apn, gprsUser, gprsPass, MODEM_LED_PIN);
+    modemClass.logConnectionInformation(modemDriver);
     
     try {
-        std::string response = HTTPS::get(sim_modem, http_client, versionFileUrl);
-        http_client.stop();
+        std::string response = HTTPS::get(modemDriver, httpClient, versionFileUrl);
+        httpClient.stop();
 
         if (updateHandler.checkUpdateAvailable(response)) {
-            if (HTTPS::download(sim_modem, http_client, binaryFileUrl, updateFilePath)) {
+            if (HTTPS::download(modemDriver, httpClient, binaryFileUrl, updateFilePath)) {
                 log_i("Firmware on disk, attempting update");
                 updateHandler.updateFromFS(updateFilePath);
             }
         }
 
-        sim_modem.gprsDisconnect();
+        modemDriver.gprsDisconnect();
         log_i("GPRS disconnected");
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(MODEM_LED_PIN, LOW);
     } catch (uint8_t error) {
         log_e("GPRS disconnected during request, failed");
     }

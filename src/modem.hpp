@@ -11,56 +11,76 @@
 #define IP5306_ADDR 0x75
 #define IP5306_REG_SYS_CTL0 0x00
 #define TINY_GSM_RX_BUFFER 1024
-#define LED_PIN 13
+#define MODEM_LED_PIN 13
+
+// SIM808
+// #define TINY_GSM_MODEM_SIM808
+// #define SIM808_BAUD_RATE 115200
+// #define SIM808_TX 17
+// #define SIM808_RX 16
+// #define SIM808_SERIAL Serial1
+// #define MODEM_PWRKEY 15
+// #define TINY_GSM_RX_BUFFER 1024
+// #define MODEM_LED_PIN 2
 
 #define MODEM_NO_NETWORK_CONN (0)
 #define MODEM_NO_GPRS_CONN (1)
 #define MODEM_NO_APN_CONN (2)
 
-// Include after TinyGSM definitions
+// Include after ModemDriver definitions
 #include <Wire.h>
-#include <TinyGSM.h>
+
+#if defined(ARDUINO)
+#include <TinyGsm.h>
 #include <TinyGsmClient.h>
+#endif
 
-class Modem
-{
+template <class ModemDriver>
+class Modem {
     public:
-    static void setupModem();
-    static bool connect(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
-    static void awaitNetworkAvailability(TinyGsm &sim_modem, long wait=15000L);
-    static void connectModemToGPRS(TinyGsm &sim_modem);
-    static void connectToAPN(TinyGsm &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
-    static void logConnectionInformation(TinyGsm &sim_modem);
-    static void logModemInformation(TinyGsm &sim_modem);
-    static bool setupPMU();
-
-    private:
     Modem() {}
+    ~Modem() {}
+    void setupModem();
+    bool connect(ModemDriver &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
+    void awaitNetworkAvailability(ModemDriver &sim_modem, long wait=15000L);
+    void verifyConnected(ModemDriver &sim_modem);
+    void connectToAPN(ModemDriver &sim_modem, const char *apn, const char *gprs_user, const char *gprs_pass, uint16_t ledPin=0);
+    void logConnectionInformation(ModemDriver &sim_modem);
+    void logModemInformation(ModemDriver &sim_modem);
+    #if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
+    
+    template <typename T>
+    bool setupPMU(T wire);
+    #endif
 };
 
-// Modem initial setup (cold start)
-void Modem::setupModem()
+/**
+ * @brief Modem initial setup (cold start)
+ * @return void
+ */
+template<class ModemDriver>
+void Modem<ModemDriver>::setupModem()
 {
-    pinMode(MODEM_RST, OUTPUT);
-    pinMode(MODEM_PWRKEY, OUTPUT);
+    #if defined(MODEM_RST) // Reset pin high
+        pinMode(MODEM_RST, OUTPUT);
+        digitalWrite(MODEM_RST, HIGH);
+    #endif
+    #if defined(MODEM_PWRKEY) // Pull down PWRKEY for more than 1 second according to manual requirements
+        pinMode(MODEM_PWRKEY, OUTPUT);
+        digitalWrite(MODEM_PWRKEY, HIGH);
+        delay(200);
+        digitalWrite(MODEM_PWRKEY, LOW);
+        delay(1200);
+        digitalWrite(MODEM_PWRKEY, HIGH);
+    #endif 
+    #if defined(MODEM_POWER_ON) // Turn on the Modem power first
     pinMode(MODEM_POWER_ON, OUTPUT);
-    pinMode(LED_PIN, OUTPUT);
-
-    // Reset pin high
-    digitalWrite(MODEM_RST, HIGH);
-
-    // Turn on the Modem power first
     digitalWrite(MODEM_POWER_ON, HIGH);
-
-    // Pull down PWRKEY for more than 1 second according to manual requirements
-    digitalWrite(MODEM_PWRKEY, HIGH);
-    delay(200);
-    digitalWrite(MODEM_PWRKEY, LOW);
-    delay(1200);
-    digitalWrite(MODEM_PWRKEY, HIGH);
-
-    // Initialize the indicator as an output
-    digitalWrite(LED_PIN, LOW);
+    #endif
+    #if defined(MODEM_LED_PIN) // Initialize the indicator as an output
+    pinMode(MODEM_LED_PIN, OUTPUT);
+    digitalWrite(MODEM_LED_PIN, LOW);
+    #endif
 }
 
 /**
@@ -72,23 +92,24 @@ void Modem::setupModem()
  * @param gprs_pass 
  * @param ledPin 
  */
-bool Modem::connect(
-    TinyGsm &sim_modem, 
+template<class ModemDriver>
+bool Modem<ModemDriver>::connect(
+    ModemDriver &sim_modem, 
     const char *apn, 
     const char *gprs_user, 
     const char *gprs_pass, 
     uint16_t ledPin
 ) {
     try {
-        Modem::awaitNetworkAvailability(sim_modem);
-        Modem::connectModemToGPRS(sim_modem);
-        Modem::connectToAPN(sim_modem, apn, gprs_user, gprs_pass, LED_PIN);
+        this->awaitNetworkAvailability(sim_modem);
+        this->connectToAPN(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
+        this->verifyConnected(sim_modem);
         return true;
     } catch (uint8_t error) {
         switch (error) {
             case MODEM_NO_NETWORK_CONN: log_e("The modem could not find a network"); break;
-            case MODEM_NO_GPRS_CONN: log_e("The modem could not connect to the GPRS network"); break;
-            case MODEM_NO_APN_CONN: log_e("The modem could not connect to the APN");
+            case MODEM_NO_GPRS_CONN: log_e("The modem could not connect to the APN"); break;
+            case MODEM_NO_APN_CONN: log_e("The modem could not connect to the GPRS network");
         }
     } catch(...) {
         log_e("Errored in Modem::connect and not caught with custom error handler");
@@ -102,12 +123,12 @@ bool Modem::connect(
  * @param sim_modem
  * @throws int MODEM_NO_NETWORK_CONN = 0;
  */
-void Modem::awaitNetworkAvailability(TinyGsm &sim_modem, long wait)
+template<class ModemDriver>
+void Modem<ModemDriver>::awaitNetworkAvailability(ModemDriver &sim_modem, long wait)
 {
     log_i("Waiting for GPRS network");
-    if (!sim_modem.waitForNetwork(wait)) {
+    if (!sim_modem.waitForNetwork(wait, true)) {
         throw MODEM_NO_NETWORK_CONN;
-        return;
     }
     log_i("Network available");
 }
@@ -118,12 +139,12 @@ void Modem::awaitNetworkAvailability(TinyGsm &sim_modem, long wait)
  * @param sim_modem
  * @throws int MODEM_NO_GPRS_CONN = 1;
  */
-void Modem::connectModemToGPRS(TinyGsm &sim_modem)
+template <class ModemDriver>
+void Modem<ModemDriver>::verifyConnected(ModemDriver &sim_modem)
 {
-    log_i("Connecting to GPRS network");
-    if (!sim_modem.isNetworkConnected()) {
+    log_i("Connecting to GPRS network, status: %i");
+    if (!sim_modem.isNetworkConnected() > 0) {
         throw MODEM_NO_GPRS_CONN;
-        return;
     }
     log_i("GPRS connected OK");
 }
@@ -138,8 +159,9 @@ void Modem::connectModemToGPRS(TinyGsm &sim_modem)
  * 
  * @throws int MODEM_NO_APN_CONN = 3;
  */
-void Modem::connectToAPN(
-    TinyGsm &sim_modem,
+template<class ModemDriver>
+void Modem<ModemDriver>::connectToAPN(
+    ModemDriver &sim_modem,
     const char *apn,
     const char *gprs_user,
     const char *gprs_pass,
@@ -148,12 +170,12 @@ void Modem::connectToAPN(
     log_i("Connecting to APN: %s", apn);
     if (!sim_modem.gprsConnect(apn, gprs_user, gprs_pass)) {
         throw MODEM_NO_APN_CONN;
-        return;
+    } else {
+        log_i("Connected, ready to send/receive");
     }
     if (ledPin > 0) {
         digitalWrite(ledPin, HIGH);
     }
-    log_i("Connected, ready to send/receive");
 }
 
 /**
@@ -162,7 +184,8 @@ void Modem::connectToAPN(
  * 
  * @param sim_modem 
  */
-void Modem::logConnectionInformation(TinyGsm &sim_modem) {  
+template<class ModemDriver>
+void Modem<ModemDriver>::logConnectionInformation(ModemDriver &sim_modem) {  
     log_i("ICCID: %s", sim_modem.getSimCCID().c_str());
     log_i("IMEI: %s", sim_modem.getIMEI().c_str());
     log_i("Operator: %s", sim_modem.getOperator());
@@ -176,27 +199,33 @@ void Modem::logConnectionInformation(TinyGsm &sim_modem) {
  * 
  * @param sim_modem 
  */
-void Modem::logModemInformation(TinyGsm &sim_modem) {
+template <class ModemDriver>
+void Modem<ModemDriver>::logModemInformation(ModemDriver &sim_modem) {
     log_i("Modem Name: %s", sim_modem.getModemName());
     log_i("Modem Info: %s", sim_modem.getModemInfo().c_str());
 }
 
+
+#if defined(I2C_SDA) && defined(I2C_SCL) && defined(IP5306_ADDR) && defined(IP5306_REG_SYS_CTL0)
 /**
  * @brief Power configuration for SIM800L_IP5306_VERSION_20190610 (v1.3) board.
  * 
  * @return true 
  * @return false 
  */
-bool Modem::setupPMU()
+template <class ModemDriver>
+template <typename T>
+bool Modem<ModemDriver>::setupPMU(T wire)
 {
     bool en = true;
-    Wire.begin(I2C_SDA, I2C_SCL);
-    Wire.beginTransmission(IP5306_ADDR);
-    Wire.write(IP5306_REG_SYS_CTL0);
+    wire.begin(I2C_SDA, I2C_SCL);
+    wire.beginTransmission(IP5306_ADDR);
+    wire.write(IP5306_REG_SYS_CTL0);
     if (en) {
-        Wire.write(0x37);
+        wire.write(0x37);
     } else {
-        Wire.write(0x35);
+        wire.write(0x35);
     }
-    return Wire.endTransmission() == 0;
+    return wire.endTransmission() == 0;
 }
+#endif
