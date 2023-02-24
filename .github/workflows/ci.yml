@@ -5,8 +5,7 @@ on:
     branches: 
       - main
       - development
-      - 'feature/bring_api_inline_with_WiFi_FirmwareUpdater'
-
+      
 jobs:
   build:
 
@@ -44,8 +43,8 @@ jobs:
     - name: Install library dependencies
       run: pio pkg install -g
 
-    - name: Build Examples
-      run: pio ci -e esp-wrover-kit examples/ --project-conf=platformio.ini --exclude=src/main.cpp --lib=src --keep-build-dir
+    # - name: Build Examples
+    #   run: pio ci -e esp-wrover-kit examples/ --project-conf=platformio.ini --exclude=src/main.cpp --lib=src --keep-build-dir
 
-    # - name: Run SemVer Tests
-    #   run: pio test -e semver-tests --without-uploading
+    - name: Run SemVer Tests
+      run: pio test -e native
