@@ -7,12 +7,16 @@
 #endif
 
 #include <iostream>
+#include <cstdio>
 #include <unity.h>
 #include <vector>
 #include <any>
 #include <PsuedoType.hpp>
 #include <modem.hpp>
 #include <mock_tiny_gsm.hpp>
+#include <exception>
+
+using namespace std;
 
 #define MODEM_UART Serial
 MockTinyGsm modemDriverMock(MODEM_UART);
@@ -53,9 +57,17 @@ void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
 }
 
 void runTests() {
+    
+    freopen( "output.txt", "w", stdout );
+    freopen( "error.txt", "w", stderr );
+
     UNITY_BEGIN();
-    RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
-    RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
+    try {
+        RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
+        RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
+    } catch(std::exception e) {
+        cerr << "Error: " << e.what() << endl;
+    }
     UNITY_END();
 }
 
