@@ -58,8 +58,8 @@ void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
 
 void runTests() {
     
-    freopen( "output.txt", "w", stdout );
-    freopen( "error.txt", "w", stderr );
+    // freopen( "output.txt", "a", stdout );
+    freopen( "error.txt", "a", stderr );
 
     UNITY_BEGIN();
     try {
@@ -67,6 +67,7 @@ void runTests() {
         RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
     } catch(std::exception e) {
         cerr << "Error: " << e.what() << endl;
+        cout << "Error: " << e.what() << endl;
     }
     UNITY_END();
 }
