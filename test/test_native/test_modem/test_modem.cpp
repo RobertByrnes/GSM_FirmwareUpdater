@@ -1,11 +1,14 @@
 #include <unity.h>
 
-#if defined(ARDUINO)
-#include <Arduino.h>
-#else
+#if not defined(ARDUINO)
 #include <ArduinoFake.h>
+#define log_i(...)
+#define log_w(...)
+#define log_d(...) 
+#define log_e(...) 
 #endif
 
+#include <PsuedoType.hpp>
 #include <modem.hpp>
 #include <mock_tiny_gsm.hpp>
 
@@ -115,17 +118,17 @@ void testLogModemInformationWithoutError()
     TEST_ASSERT_EQUAL(errored, false);
 }
 
-void testSetupPMUReturnsTrueIfWireReturnsZero()
-{
-    modemDriverMock.returns("isNetworkConnected", true);
-    TEST_ASSERT_TRUE(modemClass.setupPMU(Wire));
-}
+// void testSetupPMUReturnsTrueIfWireReturnsZero()
+// {
+//     modemDriverMock.returns("isNetworkConnected", true);
+//     TEST_ASSERT_TRUE(modemClass.setupPMU(Wire));
+// }
 
-void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
-{
-    // modemDriverMock.returns(false);
-    TEST_ASSERT_FALSE(modemClass.setupPMU(Wire));
-}
+// void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
+// {
+//     // modemDriverMock.returns(false);
+//     TEST_ASSERT_FALSE(modemClass.setupPMU(Wire));
+// }
 
 void testConnectReturnsTrueIfModemConnectedToAPN()
 {
@@ -157,11 +160,10 @@ void testConnectReturnsFalseIfModemFailsToConnect()
     TEST_ASSERT_FALSE(connected);
 }
 
-void setup()
-{ 
+void runTests() {
     UNITY_BEGIN();
-    // RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
-    // RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
+    RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
+    RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
     RUN_TEST(testconnectToAPNDoesNotThrowIfModemConnects);
     RUN_TEST(testconnectToAPNThrowsIfModemFailsToConnect);
     RUN_TEST(testVerifyConnectedDoesNotThrowIfModemIsConnected);
@@ -175,4 +177,21 @@ void setup()
     UNITY_END();
 }
 
+#if defined(ARDUINO)
+#include <Arduino.h>
+
+void setup()
+{
+    runTests();
+}
+
 void loop() {}
+
+#else
+
+int main(int argc, char **argv)
+{
+    runTests();
+    return 0;
+}
+#endif
