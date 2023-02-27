@@ -1,3 +1,6 @@
+#if not defined(EXCEPTION_H)
+#define EXCEPTION_H
+
 #include <exception>
 #include <string>
 #include <stdexcept>
@@ -7,6 +10,15 @@ using namespace std;
 class Exception: public runtime_error
 {
 public:
+    /** Error message. */
+    std::string msg_;
+    /** File. */
+    string file_;
+    /** Line. */
+    unsigned int line_;
+    /** Code. */
+    int code_;
+
     /** 
      * @brief Constructor (C strings).
      * 
@@ -76,7 +88,7 @@ public:
      *  @return A pointer to a const char*
      */
     virtual const char* what() const noexcept {
-       return msg_.c_str();
+    return msg_.c_str();
     }
 
     /**
@@ -106,17 +118,9 @@ public:
     virtual unsigned int line() const noexcept {
         return line_;
     }
-
-protected:
-    /** Error message. */
-    string msg_;
-    /** File. */
-   string file_;
-    /** Line. */
-   unsigned int line_;
-    /** Code. */
-   int code_;
 };
 
-#define Throw(arg) throw Exception(arg, __FILE__, __LINE__);
-#define Throw(arg, code) throw Exception(arg, code, __FILE__, __LINE__);
+#define ThrowException(arg) throw Exception(arg, code, __FILE__, __LINE__);
+#define ThrowExceptionWithCode(arg, code) throw Exception(arg, code, __FILE__, __LINE__);
+
+#endif

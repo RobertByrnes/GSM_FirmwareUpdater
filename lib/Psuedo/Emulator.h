@@ -1,77 +1,46 @@
-#pragma once
-
-#ifndef PSEUDOTYPE_INTERFACE
-#define PSEUDOTYPE_INTERFACE
-#endif
+#if not defined(EMULATOR_H)
+#define EMULATOR_H
 
 #include <string>
 #include <vector>
 #include <map>
 #include <any>
-
-#ifndef ARDUINO
-#include <ArduinoFake.h>
+#include <EmulationInterface.h>
+#include <Exceptions/EmulationException.h>
 #include <iostream>
 #include <ostream>
 #include <unistd.h>
-unsigned int microseconds = 1000000;
-#endif
 
+unsigned int microseconds = 1000000;
+
+using namespace std;
 
 #define PSUEDO_EXCEPTION_NO_RET_VAL         (10000)
 #define PSUEDO_EXCEPTION_NO_EXCEPT          (20000)
 
-class PsuedoTypeInterface {
-public:
-    int _wait;
-    // int _lastPsuedoException;
-    std::vector<std::map<const char *, std::any>> _returnTypes;
-    std::vector<std::map<const char *, uint16_t>> _exceptions;
-
-    virtual void returns(const char * func, std::any var_t) = 0;
-
-    virtual void waits(int seconds) = 0;
-    
-    virtual void setException(const char * func, uint16_t exception) = 0;
-
-    virtual void reset() = 0;
-
-    virtual void setInternalException(int exception) = 0;
-
-    virtual void await() = 0;
-
-    virtual int throwException(const char * func) = 0;
-
-    template<typename T>
-    T mock(const char * func);
-
-    template<typename T>
-    T doReturn(const char * func);
-
-};
-
-class PsuedoTypeBaseClass : public PsuedoTypeInterface {
-public:
-    int _wait = 0;
-    int _lastPsuedoException;
+class Emulator : public EmulationInterface {
+public:    
+    Emulator() {}
+    ~Emulator() {}
 
     /**
-     * @brief Return types for this mock instance. Stored as a std::map
-     * of function name (const char *) and return value (std::any).
+     * @brief Sets the inactive period for this class mock instance.
      * 
+     * @param seconds int
      */
-    std::vector<std::map<const char *, std::any>> _returnTypes;
+    void waits(int seconds) { _wait = seconds; }
 
     /**
-     * @brief Throwable exceptions for this mock instance. Stored as a std::map
-     * of function name (const char *) and exception (int).
-     * Currently only integer supported.
+     * @brief Pauses action for specified seconds. Specified seconds
+     * are set for this mock instance using the waits function. 
      * 
      */
-    std::vector<std::map<const char *, uint16_t>> _exceptions;
-    
-    PsuedoTypeBaseClass() {}
-    ~PsuedoTypeBaseClass() {}
+    void await() {
+        if (_wait <= 0) {
+            return;
+        } 
+        usleep(_wait * microseconds);
+    }
 
     /**
      * @brief Create a map of { func name, return value } and add this
@@ -80,17 +49,10 @@ public:
      * @param func const char *
      * @param var_t std::any
      */
-    void returns(const char * func, std::any var_t) {
-        std::map<const char *, std::any> returnMap { { func, var_t } };
+    void returns(const char * func, any var_t) {
+        std::map<const char *, any> returnMap { { func, var_t } };
         _returnTypes.push_back(returnMap);
     }
-
-    /**
-     * @brief Sets the inactive period for this class mock instance.
-     * 
-     * @param seconds int
-     */
-    void waits(int seconds) { _wait = seconds; }
 
     /**
      * @brief Creates an exception map of function name and and integer
@@ -102,7 +64,7 @@ public:
      */
     void setException(const char * func, uint16_t exception) {     
         std::map<const char *, uint16_t> exceptionMap { { func, exception } };
-        _exceptions.emplace_back(exceptionMap);
+        _exceptions.push_back(exceptionMap);
     }
 
     /**
@@ -124,11 +86,39 @@ public:
     void setInternalException(int exception) { _lastPsuedoException = exception; }
 
     /**
+     * @brief After setting the invokable method object
+     * it is stored in the _methods vector of this
+     * instance.
+     * 
+     * @param func const char *
+     * @param function pointer
+     */
+    void setMethod(const char * methodName, void (*method)()) {
+        Invokable invokableMethod = { methodName, method, 0 };
+        _methods.push_back(invokableMethod);
+    }
+
+    /**
+     * @brief Currently increments the call count.
+     * 
+     * @param methodName const char *
+     */
+    void invokeMethod(const char * methodName) {
+        for(auto method : _methods) {
+            if (method.methodName == methodName) {    
+                method.invoked += 1;
+                // method.method();
+                break;
+            }
+        }
+    }
+
+    /**
      * @brief Run the mock method by calling the underlying functions.
-     * Currently supporting wauts, exceptions and return values.
+     * Currently supporting waits, exceptions and return values.
      * 
      * @tparam T typename
-     * @param func const cha r*
+     * @param func const char *
      * @return T typename
      * @throws exceptions int
      */
@@ -152,15 +142,19 @@ public:
      * @throws PSUEDO_EXCEPTION_NO_RET_VAL (10000)
      */
     template<typename T>
-    T doReturn(const char * func) {
+    T doReturn(const char * func) { 
         T value;
+        bool canReturn = false;
         for (auto returnType : _returnTypes) {
             if (auto part = returnType.find(func); part != returnType.end()) {    
                 value = std::any_cast<T>(part->second);
-            } else {
-                setInternalException(PSUEDO_EXCEPTION_NO_RET_VAL);
-                throw PSUEDO_EXCEPTION_NO_RET_VAL;
+                canReturn = true;
+                break;
             }
+        }
+        if (!canReturn) {
+            setInternalException(PSUEDO_EXCEPTION_NO_RET_VAL);
+            throw PSUEDO_EXCEPTION_NO_RET_VAL;
         }
         return value;
     }
@@ -179,18 +173,36 @@ public:
             }
         }
         setInternalException(PSUEDO_EXCEPTION_NO_EXCEPT);
-        return  -1;
+        return -1;
     }
 
+    protected:
+    int _wait = 0;
+
+    int _lastPsuedoException = 0;
+
     /**
-     * @brief Pauses action for specified seconds. Specified seconds
-     * are set for this mock instance using the waits function. 
+     * @brief A store of methods for the mock class.
+     * Methods are stored as a vector of 
+     * function pointers.
      * 
      */
-    void await() {
-        if (_wait <= 0) {
-            return;
-        } 
-        usleep(_wait * microseconds);
-    }
+    vector<Invokable> _methods;
+
+    /**
+     * @brief Throwable exceptions for this mock instance. Stored as a std::map
+     * of function name (const char *) and exception (int).
+     * Currently only integer supported.
+     * 
+     */
+    vector<std::map<const char *, uint16_t>> _exceptions;
+
+    /**
+     * @brief Return types for this mock instance. Stored as a std::map
+     * of function name (const char *) and return value (std::any).
+     * 
+     */
+    vector<std::map<const char *, any>> _returnTypes;
 };
+
+#endif

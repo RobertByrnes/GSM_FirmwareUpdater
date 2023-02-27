@@ -1,7 +1,11 @@
 #include <unity.h>
 
-#if defined(ARDUINO)
-#include <Arduino.h>
+#if not defined(ARDUINO)
+#include <ArduinoFake.h>
+#define log_i(...) 
+#define log_w(...)
+#define log_d(...) 
+#define log_e(...) 
 #endif
 
 #include <modem.hpp>
@@ -9,7 +13,7 @@
 #include <mock_ssl_client.cpp>
 #include <mock_http_client.cpp>
 
-#define MODEM_UART Serial1
+#define MODEM_UART Serial
 
 const char *apn = "pkp18-inet";
 const char *gprsUser = "";
@@ -24,11 +28,38 @@ MockSSLClient<MockTinyGsmClient> secureLayerMock(&gsmTransportLayerMock);
 MockHttpClient httpClient = MockHttpClient(secureLayerMock, hostName, port);
 Modem<MockTinyGsm> modemClass;
 
-void setUp() {}
-void tearDown() {}
-
-void setup() {
-    UNITY_BEGIN();
-    UNITY_END();
+void setUp(void) {
+    modemDriverMock.reset();
+    httpClient.reset();
 }
+
+void tearDown(void) {}
+
+
+void runTests() {
+    // FILE *fp = freopen("output.txt", "a", stdout);
+    UNITY_BEGIN();
+    //
+    UNITY_END();
+    // fclose(fp);
+}
+
+#if defined(ARDUINO)
+#include <Arduino.h>
+
+void setup()
+{
+    runTests();
+}
+
 void loop() {}
+
+#else
+
+int main(int argc, char **argv)
+{
+    runTests();
+    return 0;
+}
+
+#endif

@@ -1,10 +1,8 @@
-#pragma once
-
 #ifndef MOCKTINYGSM_H
 #define MOCKTINYGSM_H
 
 #include <ArduinoFake.h>
-#include <PsuedoType.hpp>
+#include <Emulator.h>
 
 enum MockRegStatus {
   MOCK_REG_NO_RESULT    = -1,
@@ -16,7 +14,7 @@ enum MockRegStatus {
   MOCK_REG_UNKNOWN      = 4,
 };
 
-class MockTinyGsm : public PsuedoTypeBaseClass {
+class MockTinyGsm : public Emulator {
 public:
     explicit MockTinyGsm(Stream& stream) {}
     ~MockTinyGsm() {}
