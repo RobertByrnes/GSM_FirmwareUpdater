@@ -1,7 +1,7 @@
-#ifndef MOCKTINYGSM_H
-#define MOCKTINYGSM_H
+#if not defined(MOCK_TINY_GSM_H)
+#define MOCK_TINY_GSM_H
 
-#include <ArduinoFake.h>
+#include <Arduino.h>
 #include <Emulator.h>
 
 enum MockRegStatus {

@@ -1,3 +1,6 @@
+#if not defined(MOCK_HTTP_CLIENT)
+#define MOCK_HTTP_CLIENT
+
 #include <Arduino.h>
 #include <Emulator.h>
 
@@ -32,3 +35,5 @@ class MockHttpClient : public Emulator, public Client {
     int responseStatusCode() { return this->mock<int>("responseStatusCode"); };
     String responseBody() { return this->mock<String>("responseBody"); };
 };
+
+#endif
