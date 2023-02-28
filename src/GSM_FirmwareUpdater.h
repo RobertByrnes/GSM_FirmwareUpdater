@@ -1,9 +1,12 @@
 #ifndef GSM_FIRMWARE_UPDATER_H
 #define GSM_FIRMWARE_UPDATER_H
 
+#if defined(ARDUINO)
 #include <Update.h> 
 #include "FS.h"
 #include "SPIFFS.h"
+#endif
+
 #include <semver.hpp>
 
 #define GSM_FIRMWARE_UPDATER_NETWORK_ERROR              (1)
@@ -22,8 +25,10 @@ class GSM_FirmwareUpdater
     void updateFromFS(const char * updateFilePath);
 
     private:
-    bool spiffsInit();  
-    void beginProcessingUpdate(Stream &updateSource, size_t updateSize);
+    bool spiffsInit();
+     
+    template<typename T>
+    void beginProcessingUpdate(T &updateSource, size_t updateSize);
     std::string versionNumberFromString(std::string availableVersion);
 };
 

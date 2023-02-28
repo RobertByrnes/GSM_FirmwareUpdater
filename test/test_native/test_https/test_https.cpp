@@ -1,17 +1,8 @@
-#include <unity.h>
-
-#if not defined(ARDUINO)
-#include <ArduinoFake.h>
-#define log_i(...) 
-#define log_w(...)
-#define log_d(...) 
-#define log_e(...) 
-#endif
-
+#include <emulation.h>
 #include <modem.hpp>
-#include <mock_tiny_gsm.hpp>
-#include <mock_ssl_client.cpp>
-#include <mock_http_client.cpp>
+#include <Mocks/MockTinyGsm.hpp>
+#include <Mocks/MockSslClient.hpp>
+#include <Mocks/MockHttpClient.hpp>
 
 #define MODEM_UART Serial
 
@@ -35,11 +26,26 @@ void setUp(void) {
 
 void tearDown(void) {}
 
-
 void runTests() {
     // FILE *fp = freopen("output.txt", "a", stdout);
     UNITY_BEGIN();
-    //
+    // TODO add testGetMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING
+    // TODO add testGetMethodThrowsOnNone200Response();
+    // TODO add testGetMethodThrowsIfModemNotConnected();
+    // TODO add testPostJSONMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING
+    // TODO add testPostJsonMethodReturnsEmptyStringIfResponseBodyLengthZero(); TEST_ASSERT_EQUAL_STRING
+    // TODO add testPostJsonMethodThrowsOnNone200Response(); // consider adding 201 to check - see responseOK function
+    // TODO add testPrintMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING
+    // TODO add testPrintMethodThrowsOnNone200Response();
+    // TODO add testPrintMethodThrowsIfModemNotConnected();
+    // TODO add testResponseOKMethodReturnsTrueIfStatusCodeInSwitch();
+    // TODO add testResponseOKMethodReturnsFalseIfStatusCodeNotInSwitch();
+    // TODO add testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader(); TEST_ASSERT_TRUE
+    // TODO add testDownloadMethodReturnsTrueIfDownloadSucceedsWithContentLengthHeader(); TEST_ASSERT_TRUE 
+    // TODO add testDownloadMethodReturnsFalseIfContentLengthCheckNotSatisfied(); TEST_ASSERT_FALSE
+    // TODO add testDownloadMethodThrowsOnNone200Response();
+    // TODO add testDownloadMethodThrowsIfModemNotConnected();
+    // TODO add testReadHeadersDoesNotThrowIfHeadersValid();
     UNITY_END();
     // fclose(fp);
 }
@@ -47,8 +53,7 @@ void runTests() {
 #if defined(ARDUINO)
 #include <Arduino.h>
 
-void setup()
-{
+void setup() {
     runTests();
 }
 
@@ -56,8 +61,7 @@ void loop() {}
 
 #else
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     runTests();
     return 0;
 }

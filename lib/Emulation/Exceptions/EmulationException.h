@@ -1,3 +1,4 @@
+// TODO move to package
 #if not defined(EMAULTION_EXCEPTION_H)
 #define EMULATION_EXCEPTION_H
 

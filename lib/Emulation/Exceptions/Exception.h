@@ -1,3 +1,4 @@
+// TODO move to package
 #if not defined(EXCEPTION_H)
 #define EXCEPTION_H
 

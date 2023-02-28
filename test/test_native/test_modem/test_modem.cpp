@@ -1,15 +1,6 @@
-#include <unity.h>
-
-#if not defined(ARDUINO)
-#include <ArduinoFake.h>
-#define log_i(...) 
-#define log_w(...)
-#define log_d(...) 
-#define log_e(...) 
-#endif
-
+#include <emulation.h>
 #include <modem.hpp>
-#include <mock_tiny_gsm.hpp>
+#include <Mocks/MockTinyGsm.hpp>
 
 
 #define MODEM_UART Serial

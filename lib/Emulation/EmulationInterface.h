@@ -1,3 +1,4 @@
+// TODO move to package
 #if not defined(EMULATION_INTERFACE_H)
 #define EMULATION_INTERFACE_H
 
@@ -8,7 +9,6 @@
 #include <iostream>
 #include <ostream>
 #include <unistd.h>
-
 using namespace std;
 
 class EmulationInterface {
