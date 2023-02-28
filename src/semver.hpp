@@ -15,7 +15,7 @@ public:
      * @param v2 std::string 
      * @return int 
     */
-    static int versionCompare(string v1, string v2)
+    static int versionCompare(std::string v1, std::string v2)
     { 
         // vnum stores each numeric 
         // part of version 
@@ -53,8 +53,8 @@ public:
         return 0; 
     } 
 private:
-    Semver();
-    ~Semver();
+    Semver() {}
+    ~Semver() {}
 };
 
 #endif

@@ -30,11 +30,8 @@
 // Include after ModemDriver definitions
 #include <Wire.h>
 #include <Logger.h>
-
-#if defined(ARDUINO)
 #include <TinyGsm.h>
 #include <TinyGsmClient.h>
-#endif
 
 template <class ModemDriver>
 class Modem {

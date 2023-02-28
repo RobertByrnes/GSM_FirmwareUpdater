@@ -19,15 +19,24 @@
 // #define HTTPS_BAD_GATEWAY_RESPONSE_CODE             502
 // #define HTTPS_SERVICE_UNAVAILABLE_RESPONSE_CODE     503
 // #define HTTPS_GATEWAY_TIMEOUT_RESPONSE_CODE         504
+#define HTTPS_METHOD_GET                            "GET"
+#define HTTPS_METHOD_POST                           "POST"
+#define HTTPS_METHOD_PUT                            "PUT"
+#define HTTPS_METHOD_PATCH                          "PATCH"
+#define HTTPS_METHOD_DELETE                         "DELETE"
+#define HTTPS_HEADER_CONTENT_LENGTH                 "Content-Length"
+#define HTTPS_HEADER_CONTENT_TYPE                   "Content-Type"
+#define HTTPS_HEADER_CONNECTION                     "Connection"
+#define HTTPS_HEADER_TRANSFER_ENCODING              "Transfer-Encoding"
+#define HTTPS_HEADER_USER_AGENT                     "User-Agent"
+#define HTTPS_HEADER_VALUE_CHUNKED                  "chunked"
 
-#if defined(ARDUINO)
 #include <string.h>
 #include <TinyGSM.h>
 #include <ArduinoHttpClient.h>
 #include <CRC32.h>
 #include "FS.h"
 #include "SPIFFS.h"
-#endif
 
 using namespace std;
 
@@ -47,7 +56,7 @@ class HTTPS {
      * 
      * @throws int HTTPS_NONE_200_RESP = 1
      */
-    template <class ModemDriver, class HttpClientDriver>
+    // template <class ModemDriver, class HttpClientDriver>
     string get(ModemDriver &simModem, HttpClientDriver &httpClient, const char * resource) {
         if (simModem.isGprsConnected()) {
             log_i("Making GET request");
@@ -59,10 +68,10 @@ class HTTPS {
                 log_i("Response: %s", responseBody.c_str());
                 return responseBody;
             } else {
-                throw HTTPS_NONE_200_RESP;
+                throw 1;
             }
         } else {
-            throw HTTPS_NO_GPRS_CONN;
+            throw 0;
         }
     }
 
@@ -78,7 +87,7 @@ class HTTPS {
      * @throws HTTPS_NONE_200_RESP
      * @return std::string 
      */
-    template<class ModemDriver, class HttpClientDriver>
+    // template<class ModemDriver, class HttpClientDriver>
     string postJSON(
         ModemDriver &simModem, 
         HttpClientDriver &httpClient, 
@@ -90,14 +99,14 @@ class HTTPS {
         httpClient.connectionKeepAlive();
         httpClient.beginRequest();
         httpClient.post(endPoint);
-        httpClient.sendHeader(HTTP_HEADER_CONTENT_TYPE, HTTPS_JSON_HEADER);
-        httpClient.sendHeader(HTTP_HEADER_CONTENT_LENGTH, requestBody.length());
+        httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_JSON_HEADER);
+        httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
         if (currentToken != "") {
             string authHeader = "Bearer " + currentToken;
             httpClient.sendHeader(HTTPS_OAUTH_HEADER, authHeader.c_str());
         }
         httpClient.endRequest();
-        httpClient.write((const byte*)requestBody.c_str(), requestBody.length());
+        httpClient.write((const uint8_t*)requestBody.c_str(), requestBody.length());
         int statusCode = httpClient.responseStatusCode();
         log_i("Status code: %i", statusCode);
 
@@ -129,7 +138,7 @@ class HTTPS {
      * @throws HTTPS_NO_GPRS_CONN == 0
      * @throws HTTPS_NONE_200_RESP == 1
      */
-    template<class ModemDriver, class HttpClientDriver>
+    // template<class ModemDriver, class HttpClientDriver>
     string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * requestBody) {
         if (simModem.isGprsConnected()) {
             log_i("Attempting to download");
@@ -173,10 +182,11 @@ class HTTPS {
      * @throws HTTPS_NONE_200_RESP
      * @throws HTTPS_NO_GPRS_CONN
      */
-    template<class ModemDriver, class HttpClientDriver>
+    template<typename SPIFFSType>
     bool download(
         ModemDriver &simModem, 
         HttpClientDriver &httpClient, 
+        SPIFFSType &Spiffs,
         const char * resource, 
         const char * filePath, 
         uint32_t knownCRC32
@@ -188,8 +198,8 @@ class HTTPS {
             log_i("Status code: %i", statusCode);
             if (HTTPS::responseOK(statusCode)) {
                 
-                if (SPIFFS.exists(filePath)) {
-                    SPIFFS.remove(filePath);
+                if (Spiffs.exists(filePath)) {
+                    Spiffs.remove(filePath);
                     log_i("Removed old %s", filePath);
                 }
 
@@ -256,8 +266,8 @@ class HTTPS {
      * 
      * @param httpClient 
      */
-    template<class HttpClientDriver>
-    void readHeaders(HttpClientDriver &httpClient) {
+    template<class HttpDriver>
+    void readHeaders(HttpDriver &httpClient) {
         string headerName, headerValue;
         try {
             unsigned long headerTimeout = millis();
@@ -285,7 +295,7 @@ class HTTPS {
      * @return true 
      * @return false 
      */
-    bool HTTPS::responseOK(int statusCode) {
+    bool responseOK(int statusCode) {
         switch (statusCode) {
             case HTTPS_OK_RESPONSE_CODE:
             case HTTPS_ACCEPTED_RESPONSE_CODE:
@@ -293,7 +303,4 @@ class HTTPS {
             default: return false;
         }
     }
-
-    private:
-    static bool responseOK(int statusCode);
 };

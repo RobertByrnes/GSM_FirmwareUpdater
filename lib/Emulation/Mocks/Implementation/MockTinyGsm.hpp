@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Emulator.h>
 
-enum MockRegStatus {
+enum RegStatus {
   MOCK_REG_NO_RESULT    = -1,
   MOCK_REG_UNREGISTERED = 0,
   MOCK_REG_SEARCHING    = 2,
@@ -14,14 +14,15 @@ enum MockRegStatus {
   MOCK_REG_UNKNOWN      = 4,
 };
 
-class MockTinyGsm : public Emulator {
+class TinyGsm : public Emulator {
 public:
-    explicit MockTinyGsm(Stream& stream) {}
-    ~MockTinyGsm() {}
+    explicit TinyGsm(Stream& stream) {}
+    ~TinyGsm() {}
     inline bool init() { return this->mock<bool>("init"); }
-    inline MockRegStatus getRegistrationStatus() { return this->mock<MockRegStatus>("getRegistrationStatus"); }
+    inline RegStatus getRegistrationStatus() { return this->mock<RegStatus>("getRegistrationStatus"); }
     inline bool waitForNetwork(uint32_t timeout_ms, bool check_signal=false) { return this->mock<bool>("waitForNetwork"); }
     bool gprsConnect(const char* apn, const char* user, const char* pwd) { return this->mock<bool>("gprsConnect"); }
+    bool isGprsConnected() { return this->mock<bool>("isGprsConnected"); }
     String getSimCCID() { return this->mock<String>("getSimCCID"); }
     String getIMEI() { return this->mock<String>("getIMEI"); }
     String getOperator() { return this->mock<String>("getOperator"); }
@@ -32,10 +33,10 @@ public:
     inline bool isNetworkConnected() { return this->mock<bool>("isNetworkConnected"); }
 };
 
-class MockTinyGsmClient {
+class TinyGsmClient {
 public:
-  MockTinyGsmClient(MockTinyGsm& mockModemDriver) {}
-  ~MockTinyGsmClient() {}
+  TinyGsmClient(TinyGsm& mockModemDriver) {}
+  ~TinyGsmClient() {}
 };
 
 #endif

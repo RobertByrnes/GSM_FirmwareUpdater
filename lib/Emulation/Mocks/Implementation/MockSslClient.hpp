@@ -5,11 +5,11 @@
 #include <Emulator.h>
 
 template<class T>
-class MockSSLClient : public Emulator, public Client  {
+class SSLClient : public Emulator, public Client  {
 public:
-    MockSSLClient() {}
-    MockSSLClient(T* client) {}
-    ~MockSSLClient() {}
+    SSLClient() {}
+    SSLClient(T* client) {}
+    ~SSLClient() {}
     int connect(IPAddress ip, uint16_t port) { return this->mock<int>("connect"); };
     int connect(const char *host, uint16_t port) { return this->mock<int>("connect"); };
     size_t write(uint8_t) { return this->mock<size_t>("write"); };

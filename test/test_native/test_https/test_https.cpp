@@ -1,9 +1,11 @@
 #include <emulation.h>
 #include <https.hpp>
 #include <modem.hpp>
-#include <Mocks/MockTinyGsm.hpp>
-#include <Mocks/MockSslClient.hpp>
-#include <Mocks/MockHttpClient.hpp>
+#include <TinyGsm.h>
+#include <SSLClient.h>
+#include <ArduinoHttpClient.h>
+#include <CRC32.h>
+#include <SPIFFS.h>
 
 #define MODEM_UART Serial
 
@@ -13,29 +15,35 @@ const char *gprsPass = "";
 const char *hostName = "";
 uint16_t port = 443;
 uint16_t ledPin = 13;
+const char * fakeResource = "/path/to_resource";
 
-MockTinyGsm modemDriverMock(MODEM_UART);
-MockTinyGsmClient gsmTransportLayerMock(modemDriverMock);
-MockSSLClient<MockTinyGsmClient> secureLayerMock(&gsmTransportLayerMock);
-MockHttpClient httpClient = MockHttpClient(secureLayerMock, hostName, port);
-Modem<MockTinyGsm> modemClass;
-HTTPS<MockTinyGsm, MockHttpClient> https;
+TinyGsm modemDriverMock(MODEM_UART);
+TinyGsmClient gsmTransportLayerMock(modemDriverMock);
+SSLClient<TinyGsmClient> secureLayerMock(&gsmTransportLayerMock);
+HttpClient mockHttpClient = HttpClient(secureLayerMock, hostName, port);
+Modem<TinyGsm> modemClass;
+HTTPS<TinyGsm, HttpClient> https;
 
 void setUp(void) {
     modemDriverMock.reset();
-    httpClient.reset();
+    mockHttpClient.reset();
 }
 
 void tearDown(void) {}
 
-
 void testGetMethodReturnsNonEmptyStringOnSuccess() {
-    TEST_ASSERT_EQUAL_STRING("","");
+    String successReponse = "Success was received";
+    modemDriverMock.returns("isGprsConnected", true);
+    mockHttpClient.returns("responseStatusCode", 200);
+    mockHttpClient.returns("responseBody", successReponse);
+    std::string response = https.get(modemDriverMock, mockHttpClient, fakeResource);
+    TEST_ASSERT_EQUAL_STRING(successReponse.c_str(), response.c_str());
 }
 
 void runTests() {
     // FILE *fp = freopen("output.txt", "a", stdout);
     UNITY_BEGIN();
+    RUN_TEST(testGetMethodReturnsNonEmptyStringOnSuccess);
     // TODO add testGetMethodThrowsOnNone200Response();
     // TODO add testGetMethodThrowsIfModemNotConnected();
     // TODO add testPostJSONMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING

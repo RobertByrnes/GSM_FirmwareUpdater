@@ -55,12 +55,10 @@ def createMock(className, type):
         "#include <Arduino.h>\n",
         "#include <Emulator.h>\n",
         "\n",
-        "\n",
         "class " + className + " : public Emulator {\n",
         "public:\n",
         "\t" + className + "() {}\n",
         "\t~" + className + "() {}\n",
-        "\n",
         "\n",
         "protected:",
         "\n",
@@ -70,8 +68,7 @@ def createMock(className, type):
         "\n",
         "};\n",
         "\n",
-        "#endif\n",
-        "\n"
+        "#endif\n"
     ]
 
     mockClassStub.writelines(Lines) 
