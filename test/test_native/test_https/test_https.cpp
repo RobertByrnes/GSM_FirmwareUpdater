@@ -1,4 +1,5 @@
 #include <emulation.h>
+#include <https.hpp>
 #include <modem.hpp>
 #include <Mocks/MockTinyGsm.hpp>
 #include <Mocks/MockSslClient.hpp>
@@ -18,6 +19,7 @@ MockTinyGsmClient gsmTransportLayerMock(modemDriverMock);
 MockSSLClient<MockTinyGsmClient> secureLayerMock(&gsmTransportLayerMock);
 MockHttpClient httpClient = MockHttpClient(secureLayerMock, hostName, port);
 Modem<MockTinyGsm> modemClass;
+HTTPS<MockTinyGsm, MockHttpClient> https;
 
 void setUp(void) {
     modemDriverMock.reset();
@@ -26,10 +28,14 @@ void setUp(void) {
 
 void tearDown(void) {}
 
+
+void testGetMethodReturnsNonEmptyStringOnSuccess() {
+    TEST_ASSERT_EQUAL_STRING("","");
+}
+
 void runTests() {
     // FILE *fp = freopen("output.txt", "a", stdout);
     UNITY_BEGIN();
-    // TODO add testGetMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING
     // TODO add testGetMethodThrowsOnNone200Response();
     // TODO add testGetMethodThrowsIfModemNotConnected();
     // TODO add testPostJSONMethodReturnsNonEmptyStringOnSuccess(); TEST_ASSERT_EQUAL_STRING

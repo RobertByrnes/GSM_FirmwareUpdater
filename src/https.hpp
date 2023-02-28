@@ -35,6 +35,8 @@ template <class ModemDriver, class HttpClientDriver>
 class HTTPS {
     public:
     const static int _httpsTimeout = 30000L;
+    HTTPS() {}
+    ~HTTPS() {}
     
     /**
      * @brief Use the existing connection to send a GET request
@@ -293,6 +295,5 @@ class HTTPS {
     }
 
     private:
-    HTTPS();
     static bool responseOK(int statusCode);
 };
