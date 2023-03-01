@@ -32,6 +32,6 @@ private:
 }
 
 fs::FSImplPtr impl;
-extern fs::SPIFFSFS SPIFFS(impl);
+extern fs::SPIFFSFS SPIFFS;
 
 #endif
