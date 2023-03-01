@@ -21,10 +21,22 @@ using namespace std;
 #define PSUEDO_EXCEPTION_NO_RET_VAL         (10000)
 #define PSUEDO_EXCEPTION_NO_EXCEPT          (20000)
 
+#ifdef EMULATOR_LOG
+#include <Logger.h>
+FILE *fp = freopen("emulation.log", "a", stdout);
+#define LOG_2_TXT(x)                               log_out<const char *>(x);
+#else 
+#define LOG_2_TXT(x)
+#endif
+
 class Emulator : public EmulationInterface {
 public:    
     Emulator() {}
-    ~Emulator() {}
+    ~Emulator() {
+        #ifdef EMULATOR_LOG
+        fclose(fp);
+        #endif
+    }
 
     /**
      * @brief Sets the inactive period for this class mock instance.
@@ -127,11 +139,15 @@ public:
      */
     template<typename T>
     T mock(const char * func) {
+        string logMsg = string("Entered mock method for ") + string(func);
+        LOG_2_TXT(logMsg.c_str());
         await();
         int exception = throwException(func);
         if (exception > -1) {
+            LOG_2_TXT("Throwing expected exception");
             throw exception;
         }
+        LOG_2_TXT("Calling doReturn method");
         return doReturn<T>(func);
     }
 
@@ -156,9 +172,11 @@ public:
             }
         }
         if (!canReturn) {
+            LOG_2_TXT("In doReturn method, return value not found. Throwing NoReturnValueException");
             setInternalException(PSUEDO_EXCEPTION_NO_RET_VAL);
             throw PSUEDO_EXCEPTION_NO_RET_VAL;
         }
+        LOG_2_TXT("Returning expected value from doReturn method");
         return value;
     }
 

@@ -1,11 +1,11 @@
 #include <emulation.h>
 #include <modem.hpp>
-#include <Mocks/MockTinyGsm.hpp>
+#include <TinyGsm.h>
 
 
 #define MODEM_UART Serial
-MockTinyGsm modemDriverMock(MODEM_UART);
-Modem<MockTinyGsm> modemClass;
+TinyGsm modemDriverMock(MODEM_UART);
+Modem<TinyGsm> modemClass;
 const char *apn = "pkp18-inet";
 const char *gprsUser = "";
 const char *gprsPass = "";

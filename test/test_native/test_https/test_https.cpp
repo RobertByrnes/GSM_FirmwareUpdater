@@ -1,3 +1,5 @@
+// #define EMULATOR_LOG
+
 #include <emulation.h>
 #include <https.hpp>
 #include <modem.hpp>
@@ -34,6 +36,7 @@ void tearDown(void) {}
 void testGetMethodReturnsNonEmptyStringOnSuccess() {
     String successReponse = "Success was received";
     modemDriverMock.returns("isGprsConnected", true);
+    mockHttpClient.returns("get", 0);
     mockHttpClient.returns("responseStatusCode", 200);
     mockHttpClient.returns("responseBody", successReponse);
     std::string response = https.get(modemDriverMock, mockHttpClient, fakeResource);
@@ -41,7 +44,6 @@ void testGetMethodReturnsNonEmptyStringOnSuccess() {
 }
 
 void runTests() {
-    // FILE *fp = freopen("output.txt", "a", stdout);
     UNITY_BEGIN();
     RUN_TEST(testGetMethodReturnsNonEmptyStringOnSuccess);
     // TODO add testGetMethodThrowsOnNone200Response();
@@ -61,7 +63,6 @@ void runTests() {
     // TODO add testDownloadMethodThrowsIfModemNotConnected();
     // TODO add testReadHeadersDoesNotThrowIfHeadersValid();
     UNITY_END();
-    // fclose(fp);
 }
 
 #if defined(ARDUINO)

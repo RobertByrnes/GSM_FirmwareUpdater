@@ -1,4 +1,6 @@
 // TODO move to package
+#pragma once
+
 #include <cstdio>
 #include <iostream>
 using namespace std;
@@ -7,6 +9,4 @@ using namespace std;
 // freopen("error.txt", "w", stderr);
 
 template<typename T>
-void log_out(T output) {
-    cout << output << endl;
-}
+void log_out(T output) { cout << output << endl; }

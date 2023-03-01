@@ -79,6 +79,8 @@ def createTest(testName, subDir, subSubDir):
         sys.exit()
 
     Lines = [
+        "// #define EMULATOR_LOG\n",
+        "\n",
         "#include <emulation.h>\n",
         "\n",
         "void setUp(void) {}\n",
