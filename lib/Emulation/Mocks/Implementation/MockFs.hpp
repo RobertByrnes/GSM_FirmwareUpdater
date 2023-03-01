@@ -67,13 +67,15 @@ protected:
     FileImplPtr _p;
 };
 
+File ifile;
+
 class FS : virtual public Emulator
 {
 public:
     FS(FSImplPtr impl) : _impl(impl) {}
 
-    File open(const char* path, const char* mode = FILE_READ, const bool create = false) { return this->mock<File>("open"); }
-    File open(const String& path, const char* mode = FILE_READ, const bool create = false) { return this->mock<File>("open"); }
+    File open(const char* path, const char* mode = FILE_READ, const bool create = false) { return ifile; }
+    File open(const String& path, const char* mode = FILE_READ, const bool create = false) { return ifile; }
 
     bool exists(const char* path) { return this->mock<bool>("exists"); }
     bool exists(const String& path) { return this->mock<bool>("exists"); }
