@@ -27,7 +27,7 @@ public:
 
     virtual void await() = 0;
 
-    virtual void returns(const char * func, any var_t) = 0;
+    // virtual void returns(const char * func, any var_t) = 0;
     
     virtual void setException(const char * func, uint16_t exception) = 0;
 

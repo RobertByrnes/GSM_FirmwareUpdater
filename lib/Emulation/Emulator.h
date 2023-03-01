@@ -23,7 +23,7 @@ using namespace std;
 
 #ifdef EMULATOR_LOG
 #include <Logger.h>
-FILE *fp = freopen("emulation.log", "a", stdout);
+FILE *fp = freopen("emulation.log", "w", stdout);
 #define LOG_2_TXT(x)                               log_out<const char *>(x);
 #else 
 #define LOG_2_TXT(x)
@@ -64,10 +64,23 @@ public:
      * @param func const char *
      * @param var_t std::any
      */
-    void returns(const char * func, any var_t) {
+    Emulator& returns(const char * func, any var_t) {
         std::map<const char *, any> returnMap { { func, var_t } };
         _returnTypes.push_back(returnMap);
+        return *this;
     }
+
+    Emulator& times(int n) {
+        // TODO add this method
+        return *this;
+    }
+
+    Emulator& then(const char * func, any var_t) {
+        // TODO add this method
+        return *this; 
+    }
+
+    void endthIS() {}
 
     /**
      * @brief Creates an exception map of function name and and integer
