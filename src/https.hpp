@@ -93,25 +93,25 @@ class HTTPS {
         HttpClientDriver &httpClient, 
         const char * endPoint, 
         string requestBody, 
-        string currentToken
+        string currentToken=string("")
     ) {
+        // TODO this method does not use simModem either add GPRS connected check or remove parameter
         httpClient.setHttpResponseTimeout(HTTPS::_httpsTimeout);
         httpClient.connectionKeepAlive();
         httpClient.beginRequest();
         httpClient.post(endPoint);
         httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_JSON_HEADER);
         httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
-        if (currentToken != "") {
+        if (!currentToken.empty()) {
             string authHeader = "Bearer " + currentToken;
             httpClient.sendHeader(HTTPS_OAUTH_HEADER, authHeader.c_str());
-        }
+        }  
         httpClient.endRequest();
-        httpClient.write((const uint8_t*)requestBody.c_str(), requestBody.length());
+        httpClient.write((uint8_t*)requestBody.c_str(), requestBody.length());
         int statusCode = httpClient.responseStatusCode();
         log_i("Status code: %i", statusCode);
-
-        if (HTTPS::responseOK(statusCode)) {
-            HTTPS::readHeaders(httpClient);
+        if (this->responseOK(statusCode)) {
+            this->readHeaders(httpClient);
             if (httpClient.isResponseChunked()) {
                 log_d("The response is chunked");
             }
@@ -124,7 +124,7 @@ class HTTPS {
                 return "";
             }
         }
-        throw HTTPS_NONE_200_RESP;
+        throw 1;
     }
 
     /**
@@ -145,15 +145,15 @@ class HTTPS {
             httpClient.print(requestBody);
             int statusCode = httpClient.responseStatusCode();
             log_i("Status code: %i", statusCode);
-            if (HTTPS::responseOK(statusCode)) {
-                string response;
+            if (this->responseOK(statusCode)) {
+                string response = "";
                 unsigned long timeoutStart = millis();
                 char c;
 
                 while (
                     (httpClient.connected() || httpClient.available()) &&
                     (!httpClient.endOfBodyReached()) &&
-                    ((millis() - timeoutStart) < HTTPS::_httpsTimeout)
+                    ((millis() - timeoutStart) < this->_httpsTimeout)
                 ) {
                     c = httpClient.read();
                     response += c;
@@ -161,10 +161,10 @@ class HTTPS {
 
                 return response;
             } else {
-                throw HTTPS_NONE_200_RESP;
+                throw 1;
             }
         } else {
-            throw HTTPS_NO_GPRS_CONN;
+            throw 0;
         }    
     }
 
@@ -189,14 +189,14 @@ class HTTPS {
         SPIFFSType &Spiffs,
         const char * resource, 
         const char * filePath, 
-        uint32_t knownCRC32
+        uint32_t knownCRC32=0
     ) {
         if (simModem.isGprsConnected()) {
             log_i("Attempting to download");
             httpClient.get(resource);
             int statusCode = httpClient.responseStatusCode();
             log_i("Status code: %i", statusCode);
-            if (HTTPS::responseOK(statusCode)) {
+            if (this->responseOK(statusCode)) {
                 
                 if (Spiffs.exists(filePath)) {
                     Spiffs.remove(filePath);
@@ -214,20 +214,18 @@ class HTTPS {
 
                 while (
                     (httpClient.connected() || httpClient.available()) &&
-                    (!httpClient.endOfBodyReached()) &&
-                    ((millis() - timeoutStart) < HTTPS::_httpsTimeout)
+                    !(httpClient.endOfBodyReached()) &&
+                    ((millis() - timeoutStart) < this->_httpsTimeout)
                 ) {
                     if (httpClient.available()) {
                         bin = httpClient.readBytes(wbuf, sizeof(wbuf));
                         readLength += file.write(wbuf, bin);
                         crc.update(bin);
-                        Serial.print(bin);
                         timeoutStart = millis();
                     } else {
                         vTaskDelay(50);
                     }
                 }
-                Serial.println();
                 log_i(
                     "\n%d bytes downloaded and writted to file : %s", 
                     readLength, 
@@ -253,10 +251,10 @@ class HTTPS {
 
                 return false;
             } else {
-                throw HTTPS_NONE_200_RESP;
+                throw 1;
             }
         } else {
-            throw HTTPS_NO_GPRS_CONN;
+            throw 0;
         }
     }
 
@@ -271,19 +269,17 @@ class HTTPS {
         string headerName, headerValue;
         try {
             unsigned long headerTimeout = millis();
-            while (httpClient.headerAvailable() && millis() - headerTimeout < HTTPS::_httpsTimeout) {
+            while (httpClient.headerAvailable() && millis() - headerTimeout < this->_httpsTimeout) {
                 headerName = httpClient.readHeaderName().c_str();
                 headerValue = httpClient.readHeaderValue().c_str();
                 log_i("%s : %s", headerName.c_str(), headerValue.c_str());
             }
-
             int length = httpClient.contentLength();
-
             if (length >= 0) {
                 log_i("Content length: %i", length);
             }
         } catch(uint8_t error) {
-            throw HTTPS_FAILED_HEADER_READ;
+            throw 2;
             log_e("failed when reading response headers, last header read: '%s': '%s'", headerName.c_str(), headerValue.c_str());
         }
     }
