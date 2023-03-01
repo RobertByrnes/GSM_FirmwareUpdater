@@ -29,21 +29,9 @@ class HttpClient : public Emulator, public Client {
     HttpClient(Client& aClient, const IPAddress& aServerAddress, uint16_t aServerPort = 443) {}
     ~HttpClient() {}
 
-    // client methods
-    int connect(IPAddress ip, uint16_t port) { return this->mock<int>("connect"); };
-    int connect(const char *host, uint16_t port) { return this->mock<int>("connect"); };
-    size_t write(uint8_t) { return this->mock<size_t>("write"); };
-    size_t write(const uint8_t *buf, size_t size) { return this->mock<size_t>("write"); };
-    int available() { return this->mock<int>("available"); };
-    int read() { return this->mock<int>("read"); };
-    int read(uint8_t *buf, size_t size) { return this->mock<int>("read"); };
-    int peek() { return this->mock<int>("peek"); };
-    void flush() {};
-    void stop() {};
-    uint8_t connected() { return this->mock<uint8_t>("connected"); };
-    operator bool() { return bool(true); }; // client end
+    // Additional methods
+    size_t print(const char * stringToPrint) { return this->mock<size_t>("print"); }
 
-    // Mock methods
     /** Start a more complex request.
         Use this when you need to send additional headers in the request,
         but you will also need to call endRequest() when you are finished.
@@ -248,15 +236,15 @@ class HttpClient : public Emulator, public Client {
     /** Test whether all of the response headers have been consumed.
       @return true if we are now processing the response body, else false
     */
-    bool endOfHeadersReached() { return this->mock<int>("endOfHeadersReached"); }
+    bool endOfHeadersReached() { return this->mock<bool>("endOfHeadersReached"); }
 
     /** Test whether the end of the body has been reached.
       Only works if the Content-Length header was returned by the server
       @return true if we are now at the end of the body, else false
     */
-    bool endOfBodyReached() { return this->mock<int>("endOfBodyReached"); }
-    virtual bool endOfStream() { return endOfBodyReached(); };
-    virtual bool completed() { return endOfBodyReached(); };
+    bool endOfBodyReached() { return this->mock<bool>("endOfBodyReached"); }
+    bool endOfStream() { return endOfBodyReached(); };
+    bool completed() { return endOfBodyReached(); };
 
     /** Return the length of the body.
       Also skips response headers if they have not been read already
@@ -269,7 +257,7 @@ class HttpClient : public Emulator, public Client {
     /** Returns if the response body is chunked
       @return true if response body is chunked, false otherwise
     */
-    int isResponseChunked() { return iIsChunked; }
+    int isResponseChunked() { return this->mock<int>("isResponseChuncked"); }
 
     /** Return the response body as a String
       Also skips response headers if they have not been read already
@@ -289,26 +277,36 @@ class HttpClient : public Emulator, public Client {
     // Inherited from Print
     // Note: 1st call to these indicates the user is sending the body, so if need
     // Note: be we should finish the header first
-    // virtual size_t write(uint8_t aByte) { if (iState < eRequestSent) { finishHeaders(); }; return iClient-> write(aByte); };
-    // virtual size_t write(const uint8_t *aBuffer, size_t aSize) { if (iState < eRequestSent) { finishHeaders(); }; return iClient->write(aBuffer, aSize); };
+    size_t write(uint8_t aByte) { 
+      if (iState < eRequestSent) {
+        finishHeaders(); 
+      }
+      return this->mock<size_t>("write");
+    }
+    size_t write(const uint8_t *aBuffer, size_t aSize) {
+      if (iState < eRequestSent) {
+        finishHeaders();
+      } 
+      return this->mock<size_t>("write");
+    }
     // Inherited from Stream
-    // virtual int available() { return this->mock<int>("available"); }
+    int available() { return this->mock<int>("available"); }
     /** Read the next byte from the server.
       @return Byte read or -1 if there are no bytes available.
     */
-    // virtual int read() { return this->mock<int>("read"); }
-    // virtual int read(uint8_t *buf, size_t size) { return this->mock<int>("read"); }
-    // virtual int peek() { return iClient->peek(); }
-    // virtual void flush() { iClient->flush(); }
+    int read() { return this->mock<int>("read"); }
+    int read(uint8_t *buf, size_t size) { return this->mock<int>("read"); }
+    int peek() { return iClient->peek(); }
+    void flush() { iClient->flush(); }
 
     // Inherited from Client
-    // virtual int connect(IPAddress ip, uint16_t port) { return iClient->connect(ip, port); }
-    // virtual int connect(const char *host, uint16_t port) { return iClient->connect(host, port); }
-    // virtual void stop() {}
-    // virtual uint8_t connected() { return iClient->connected(); };
-    // virtual operator bool() { return bool(iClient); };
-    // virtual uint32_t httpResponseTimeout() { return iHttpResponseTimeout; };
-    // virtual void setHttpResponseTimeout(uint32_t timeout) { iHttpResponseTimeout = timeout; };
+    int connect(IPAddress ip, uint16_t port) { return iClient->connect(ip, port); }
+    int connect(const char *host, uint16_t port) { return iClient->connect(host, port); }
+    void stop() {}
+    uint8_t connected() { return this->mock<uint8_t>("connected"); };
+    operator bool() { return bool(iClient); };
+    uint32_t httpResponseTimeout() { return iHttpResponseTimeout; };
+    void setHttpResponseTimeout(uint32_t timeout) { iHttpResponseTimeout = timeout; };
 protected:
     /** Reset internal state data back to the "just initialised" state
     */
