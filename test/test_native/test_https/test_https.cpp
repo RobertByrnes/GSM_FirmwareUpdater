@@ -209,8 +209,8 @@ void testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader() 
     SPIFFS.returns("remove", true);
     mockHttpClient.returns("contentLength", -1);
     SPIFFS.returns("open", true);
-    mockHttpClient.returns("connected", (uint8_t)1).then("connected", (uint8_t)0); // TODO implement chain calls
-    mockHttpClient.returns("available", 0).then("available", 0); // TODO implement chain calls
+    mockHttpClient.returns("connected", (uint8_t)1).then((uint8_t)0); // TODO implement chain calls
+    mockHttpClient.returns("available", 0).then(0); // TODO implement chain calls
     mockHttpClient.returns("endOfBodyReached", false);
     mockHttpClient.returns("available", 1);
     mockHttpClient.returns("readBytes", 100);

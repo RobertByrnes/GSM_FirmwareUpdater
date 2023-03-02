@@ -58,29 +58,83 @@ public:
     }
 
     /**
-     * @brief Create a map of { func name, return value } and add this
-     * to the vector of return values assigned to this mock instance.
+     * @brief Create a MethodProfile instance for the method descibed by the func parameter.
+     * The method will return the value stored in the instance of RetVal. An assumption
+     * is made that the mock invocation of this method will always return this value
+     * when called unless the behaviour is further specified with chained 
+     * method calls to times() and then().
      * 
+     * @see MethodProfile
+     * @see RetVal
      * @param func const char *
      * @param var_t std::any
+     * @return Emulator& 
      */
     Emulator& returns(const char * func, any var_t) {
+        _lastFunc = func;
+        RetVal retVal = { 1, var_t };
+        vector<RetVal> then = {};
+        MethodProfile method = { func, retVal, then, 0 };
+        _methods.push_back(method);
+        // TODO swith _returnTypes to _methods
         std::map<const char *, any> returnMap { { func, var_t } };
         _returnTypes.push_back(returnMap);
         return *this;
     }
 
-    Emulator& times(int n) {
-        // TODO add this method
+    /**
+     * @brief Edit the defaualt behaviour of how many times a mocked method will return
+     * the value. The default value for the (int)RetVal.first is 1. If the next vector
+     * is empty the mock method will always return (std:any)RetVal.second stored 
+     * in MethodProfile::retVal. If MethodProfile::then has elements the
+     * mocked method will return the next value, decrementing the value
+     * integer n stored in the lowest index of MethodProfile::then.
+     * If n reaches 0 and a subsequent element is present in   
+     * MethodProfile::then, the process will be repeated
+     * If no more elements are present to use the mock
+     * methods will keep on returning the last value
+     * rather than generate an exception due to
+     * a failure to return the correct type.
+     *    
+     * @param n int
+     * @return Emulator& 
+     */
+    Emulator& times(int n) {     
+        for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
+            if (method_It->methodName == _lastFunc) {
+                if (method_It->then.size() == 0) {
+                    method_It->retVal.first = n;
+                } else {
+                    RetVal retVal = method_It->then.back();
+                    retVal.first = n;
+                }
+                break;
+            }
+        }
         return *this;
     }
 
-    Emulator& then(const char * func, any var_t) {
-        // TODO add this method
+    /**
+     * @brief Create another RetVal instance to store within an existing
+     * MethodProfile. The returns() method must be called first as
+     * _lastFunc is used to locate the correct MethodProfile.
+     * If _lastFunc is empty a EmulatorNoProfileException is
+     * thrown to prompt the user to chain calls correctly.
+     * 
+     * @param var_t std::any
+     * @return Emulator& 
+     * @throw EmulatorNoProfileException
+     */
+    Emulator& then(any var_t) {
+        for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
+            if (method_It->methodName == _lastFunc) {
+                RetVal retVal = { 1, var_t };
+                method_It->then.push_back(retVal);
+                break;
+            }
+        }
         return *this; 
     }
-
-    void endthIS() {}
 
     /**
      * @brief Creates an exception map of function name and and integer
@@ -91,6 +145,8 @@ public:
      * @param exception int (currently only integer supported)
      */
     void setException(const char * func, uint16_t exception) {     
+        // TODO move into Invokable
+        // TODO change std::map to std::pair
         std::map<const char *, uint16_t> exceptionMap { { func, exception } };
         _exceptions.push_back(exceptionMap);
     }
@@ -113,18 +169,19 @@ public:
      */
     void setInternalException(int exception) { _lastPsuedoException = exception; }
 
-    /**
-     * @brief After setting the invokable method object
-     * it is stored in the _methods vector of this
-     * instance.
-     * 
-     * @param func const char *
-     * @param function pointer
-     */
-    void setMethod(const char * methodName, void (*method)()) {
-        Invokable invokableMethod = { methodName, method, 0 };
-        _methods.push_back(invokableMethod);
-    }
+    // /**
+    //  * @brief After setting the invokable method object
+    //  * it is stored in the _methods vector of this
+    //  * instance.
+    //  * 
+    //  * @param func const char *
+    //  * @param function pointer
+    //  */
+    // void setMethod(const char * methodName, void (*method)(), std::any var_t) {
+    //     std::map<int, std::any> retVal = { { 1, var_t } };
+    //     MethodProfile invokableMethod = { methodName, method, retVal };
+    //     _methods.push_back(invokableMethod);
+    // }
 
     /**
      * @brief Currently increments the call count.
@@ -175,6 +232,7 @@ public:
      */
     template<typename T>
     T doReturn(const char * func) { 
+        // TODO refactor to use and edit vector of invokables, edit the remaining calls during runtime
         T value;
         bool canReturn = false;
         for (auto returnType : _returnTypes) {
@@ -215,13 +273,15 @@ public:
 
     int _lastPsuedoException = 0;
 
+    std::string _lastFunc = "";
+
     /**
      * @brief A store of methods for the mock class.
      * Methods are stored as a vector of 
      * function pointers.
      * 
      */
-    vector<Invokable> _methods;
+    vector<MethodProfile> _methods;
 
     /**
      * @brief Throwable exceptions for this mock instance. Stored as a std::map

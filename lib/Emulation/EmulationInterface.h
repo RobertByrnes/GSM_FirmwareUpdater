@@ -5,7 +5,7 @@
 #include <vector>
 #include <any>
 #include <map>
-#include <Invokable.h>
+#include <MethodProfile.h>
 #include <iostream>
 #include <ostream>
 #include <unistd.h>
@@ -17,7 +17,7 @@ public:
 
     int _lastPsuedoException;
     
-    vector<Invokable> _methods;
+    vector<MethodProfile> _methods;
 
     vector<std::map<const char *, uint16_t>> _exceptions;
 
@@ -37,7 +37,7 @@ public:
 
     virtual int throwException(const char * func) = 0;
 
-    virtual void setMethod(const char * func, void (*function)()) = 0;
+    // virtual void setMethod(const char * func, void (*function)(),  std::any var_t) = 0;
 
     virtual void invokeMethod(const char * methodName) = 0;
 
