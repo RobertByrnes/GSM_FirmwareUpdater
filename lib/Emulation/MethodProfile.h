@@ -5,14 +5,13 @@
 #include <any>
 #include <vector>
 
-typedef std::pair<int, std::any> RetVal; // times to return this value / value to return
+typedef std::pair<int, std::any> RetVal; // times to return this value, default 1 / value to return
 
 typedef struct {
     const char * methodName;
-    // void (*method)(); // TODO consider adding a pointer or rename type to MethodProfile
-    RetVal retVal; // nTimes - default = 1/ retVal
+    RetVal retVal;
     std::vector<RetVal> then = {};
-    int invoked;
+    int invoked = 0;
 } MethodProfile;
 
 #endif

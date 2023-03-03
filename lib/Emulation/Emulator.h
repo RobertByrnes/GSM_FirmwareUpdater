@@ -9,7 +9,7 @@
 #include <map>
 #include <any>
 #include <EmulationInterface.h>
-#include <Exceptions/EmulationException.h>
+#include <Exceptions/NoReturnValueException.h>
 #include <iostream>
 #include <ostream>
 #include <unistd.h>
@@ -217,7 +217,6 @@ public:
         }
         EMULATION_LOG("Calling doReturn method");
         return doReturn<T>(func);
-        // TODO no tracking of calls/returns
     }
 
     /**
@@ -241,7 +240,7 @@ public:
      * @tparam T typename
      * @param func const char *
      * @return T typename
-     * @throws PSUEDO_EXCEPTION_NO_RET_VAL (10000)
+     * @throws NoReturnValueException
      */
     template<typename T>
     T doReturn(const char * func) { 
@@ -249,30 +248,26 @@ public:
         bool canReturn = false;
         for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
             if (method_It->methodName == func) {
-                return this->findRetVal<T>(method_It);
+                value = this->findRetVal<T>(method_It);
+                method_It->invoked += 1;
+                break;
             }
-
         }
-        if (!canReturn) {
-            EMULATION_LOG("In doReturn method, return value not found. Throwing NoReturnValueException");
-            setInternalException(PSUEDO_EXCEPTION_NO_RET_VAL);
-            throw PSUEDO_EXCEPTION_NO_RET_VAL;
-        }
-        EMULATION_LOG("Returning expected value from doReturn method");
         return value;
     }
 
     /**
      * @brief Implements the logical search and is called by doReturn().
-     * 1. In RetVal is n > 0? If yes decrement n and return value.
-     * 2. If RetVal.n is 0 Check MethodProfile.next for size() if > 0 then not empty.
-     * 3. If MethodProfile.next size() is 0 return RetVal.
-     * 4. ElseIf MethodProfile.next size() > 0 set retVal to the first element of next, 
+     * Step 1. In RetVal is n > 0? If yes decrement n and return value.
+     * Step 2. If RetVal.n is 0 Check MethodProfile.next for size() if > 0 then not empty.
+     * Step 3. If MethodProfile.next size() is 0 return RetVal.
+     * Step 4. If MethodProfile.next size() > 0 set retVal to the first element of next, 
      * decrement n and return value(of retVal) and remove the first element of next.
      * 
      * @tparam T 
      * @param method_It 
      * @return T 
+     * @throws NoReturnValueException
      */
     template<typename T>
     T findRetVal(std::vector<MethodProfile>::iterator &method_It) {
@@ -296,8 +291,11 @@ public:
             if (thenIsEmpty) {            
                 try {
                     value = std::any_cast<T>(method_It->retVal.second); 
+                    return value;
                 } catch (std::bad_any_cast e) {
-                    EMULATION_LOG(e.what());
+                    std::string eMessage = "Return value for " + std::string(method_It->methodName) + " found, casting failed: " + e.what();
+                    EMULATION_LOG(eMessage.c_str());
+                    NoReturnValueException(eMessage.c_str());
                 }
             } else { // if then not empty and n is 0 move onto to then
                 method_It->retVal = method_It->then[0];
@@ -305,6 +303,8 @@ public:
                 this->findRetVal<T>(method_It);
             }
         }
+        std::string eMessage = "Could not find a return value for " + std::string(method_It->methodName) + ", .returns() must be called for this method.";
+        NoReturnValueException(eMessage.c_str());
         return value;
     }
 
