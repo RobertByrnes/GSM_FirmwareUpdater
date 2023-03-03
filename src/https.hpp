@@ -95,36 +95,39 @@ class HTTPS {
         string requestBody, 
         string currentToken=string("")
     ) {
-        // TODO this method does not use simModem either add GPRS connected check or remove parameter
-        httpClient.setHttpResponseTimeout(HTTPS::_httpsTimeout);
-        httpClient.connectionKeepAlive();
-        httpClient.beginRequest();
-        httpClient.post(endPoint);
-        httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_JSON_HEADER);
-        httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
-        if (!currentToken.empty()) {
-            string authHeader = "Bearer " + currentToken;
-            httpClient.sendHeader(HTTPS_OAUTH_HEADER, authHeader.c_str());
-        }  
-        httpClient.endRequest();
-        httpClient.write((uint8_t*)requestBody.c_str(), requestBody.length());
-        int statusCode = httpClient.responseStatusCode();
-        log_i("Status code: %i", statusCode);
-        if (this->responseOK(statusCode)) {
-            this->readHeaders(httpClient);
-            if (httpClient.isResponseChunked()) {
-                log_d("The response is chunked");
+        if (simModem.isGprsConnected()) {
+            httpClient.setHttpResponseTimeout(HTTPS::_httpsTimeout);
+            httpClient.connectionKeepAlive();
+            httpClient.beginRequest();
+            httpClient.post(endPoint);
+            httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_JSON_HEADER);
+            httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
+            if (!currentToken.empty()) {
+                string authHeader = "Bearer " + currentToken;
+                httpClient.sendHeader(HTTPS_OAUTH_HEADER, authHeader.c_str());
+            }  
+            httpClient.endRequest();
+            httpClient.write((uint8_t*)requestBody.c_str(), requestBody.length());
+            int statusCode = httpClient.responseStatusCode();
+            log_i("Status code: %i", statusCode);
+            if (this->responseOK(statusCode)) {
+                this->readHeaders(httpClient);
+                if (httpClient.isResponseChunked()) {
+                    log_d("The response is chunked");
+                }
+                string responseBody = httpClient.responseBody().c_str();
+                log_i("Response: %s", responseBody.c_str());
+                log_d("Body length is: %i", responseBody.length());
+                if (responseBody.length() > 0) {
+                    return responseBody;
+                } else {
+                    return "";
+                }
             }
-            string responseBody = httpClient.responseBody().c_str();
-            log_i("Response: %s", responseBody.c_str());
-            log_d("Body length is: %i", responseBody.length());
-            if (responseBody.length() > 0) {
-                return responseBody;
-            } else {
-                return "";
-            }
-        }
-        throw 1;
+            throw 1;
+        } else {
+            throw 0;
+        } 
     }
 
     /**
@@ -141,12 +144,12 @@ class HTTPS {
     // template<class ModemDriver, class HttpClientDriver>
     string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * requestBody) {
         if (simModem.isGprsConnected()) {
+            string response = "";
             log_i("Attempting to download");
             httpClient.print(requestBody);
             int statusCode = httpClient.responseStatusCode();
             log_i("Status code: %i", statusCode);
             if (this->responseOK(statusCode)) {
-                string response = "";
                 unsigned long timeoutStart = millis();
                 char c;
 

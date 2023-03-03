@@ -1,12 +1,15 @@
 // TODO move to package
 #pragma once
 
-#include <cstdio>
 #include <iostream>
+#include <fstream>
+
 using namespace std;
 
-// freopen("output.txt", "w", stdout);
-// freopen("error.txt", "w", stderr);
+ofstream logFile ("emulation.log");
+
 
 template<typename T>
-void log_out(T output) { cout << output << endl; }
+void log_out(T output) { 
+    logFile << output << endl;
+}

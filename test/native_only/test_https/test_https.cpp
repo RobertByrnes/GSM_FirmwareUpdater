@@ -1,6 +1,7 @@
 #define EMULATOR_LOG
 
 #include <emulation.h>
+#include <MethodLog.h>
 #include <https.hpp>
 #include <modem.hpp>
 #include <TinyGsm.h>
@@ -26,6 +27,7 @@ HttpClient mockHttpClient = HttpClient(secureLayerMock, hostName, port);
 Modem<TinyGsm> modemClass;
 HTTPS<TinyGsm, HttpClient> https;
 fs::SPIFFSFS SPIFFS(impl);
+MethodLog methodLogger;
 
 String successReponse = "Develop success from failures.";
 std::string requestBody = "The road to success and the road to failure are almost exactly the same.";
@@ -71,27 +73,23 @@ void testGetMethodThrowsIfModemNotConnected() {
 }
 
 void testPostJSONMethodReturnsNonEmptyStringOnSuccess() {
-    // TODO fix this - headerAvailable not found
-    try {
-        modemDriverMock.returns("isGprsConnected", true);
-        mockHttpClient.returns("post", 0);
-        mockHttpClient.returns("write", (size_t)1024);
-        mockHttpClient.returns("responseStatusCode", 200);
-        mockHttpClient.returns("isResponseChuncked", 0);
-        mockHttpClient.returns("headerAvailable", true).then(false);
-        mockHttpClient.returns("readHeaderName", String("header"));
-        mockHttpClient.returns("readHeaderValue", String("value"));
-        mockHttpClient.returns("contentLength", 1000);
-        mockHttpClient.returns("responseBody", successReponse);
-        std::string response = https.postJSON(modemDriverMock, mockHttpClient, fakeResource, requestBody);
-        TEST_ASSERT_EQUAL_STRING(successReponse.c_str(), response.c_str());
-    } catch (NoReturnValueException e) {
-        log_out<const char *>(e.what());
-    }
+    modemDriverMock.returns("isGprsConnected", true);
+    mockHttpClient.returns("post", 0);
+    mockHttpClient.returns("write", (size_t)1024);
+    mockHttpClient.returns("responseStatusCode", 200);
+    mockHttpClient.returns("isResponseChuncked", 0);
+    mockHttpClient.returns("headerAvailable", true).then(false);
+    mockHttpClient.returns("readHeaderName", String("header"));
+    mockHttpClient.returns("readHeaderValue", String("value"));
+    mockHttpClient.returns("contentLength", 1000);
+    mockHttpClient.returns("responseBody", successReponse);
+    std::string response = https.postJSON(modemDriverMock, mockHttpClient, fakeResource, requestBody);
+    TEST_ASSERT_EQUAL_STRING(successReponse.c_str(), response.c_str());
+    methodLogger.dumpMethodProfiles(mockHttpClient._methods);
 }
 
 void testPostJsonMethodReturnsEmptyStringIfResponseBodyLengthZero() {
-    modemDriverMock.returns("isGprsConnected", false);
+    modemDriverMock.returns("isGprsConnected", true);
     mockHttpClient.returns("post", 0);
     mockHttpClient.returns("write", (size_t)1024);
     mockHttpClient.returns("responseStatusCode", 200);
@@ -130,6 +128,7 @@ void testPrintMethodReturnsNonEmptyStringOnSuccess() {
     mockHttpClient.returns("endOfBodyReached", false).then(true);
     mockHttpClient.returns("read", 83);
     std::string response = https.print(modemDriverMock, mockHttpClient, requestBody.c_str());
+    methodLogger.dumpMethodProfiles(mockHttpClient._methods);
     TEST_ASSERT_EQUAL_STRING("S", response.c_str());
 }
 
@@ -212,7 +211,6 @@ void testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader() 
     mockHttpClient.returns("readBytes", 100);
     File file;
     file.returns("write", 1);
-    
     https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource);
 }
 
@@ -225,17 +223,17 @@ void runTests() {
     RUN_TEST(testPostJsonMethodReturnsEmptyStringIfResponseBodyLengthZero);
     RUN_TEST(testPostJsonMethodThrowsOnNone200Response); // consider adding 201 to check - see responseOK function
     RUN_TEST(testPrintMethodReturnsNonEmptyStringOnSuccess);
-    // RUN_TEST(testPrintMethodThrowsOnNone200Response);
-    // RUN_TEST(testPrintMethodThrowsIfModemNotConnected);
-    // RUN_TEST(testResponseOKMethodReturnsTrueIfStatusCodeInSwitch);
-    // RUN_TEST(testResponseOKMethodReturnsFalseIfStatusCodeNotInSwitch);
+    RUN_TEST(testPrintMethodThrowsOnNone200Response);
+    RUN_TEST(testPrintMethodThrowsIfModemNotConnected);
+    RUN_TEST(testResponseOKMethodReturnsTrueIfStatusCodeInSwitch);
+    RUN_TEST(testResponseOKMethodReturnsFalseIfStatusCodeNotInSwitch);
     RUN_TEST(testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader);
     // TODO add testDownloadMethodReturnsTrueIfDownloadSucceedsWithContentLengthHeader(); TEST_ASSERT_TRUE 
     // TODO add testDownloadMethodReturnsFalseIfContentLengthCheckNotSatisfied(); TEST_ASSERT_FALSE
     // TODO add testDownloadMethodThrowsOnNone200Response();
     // TODO add testDownloadMethodThrowsIfModemNotConnected();
-    // RUN_TEST(testReadHeadersDoesNotThrowIfHeadersValid);
-    // RUN_TEST(testReadHeadersThrowsIfHeadersInvalid);
+    RUN_TEST(testReadHeadersDoesNotThrowIfHeadersValid);
+    RUN_TEST(testReadHeadersThrowsIfHeadersInvalid);
     UNITY_END();
 }
 

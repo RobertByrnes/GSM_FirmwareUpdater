@@ -23,7 +23,6 @@ using namespace std;
 
 #ifdef EMULATOR_LOG
 #include <Logger.h>
-FILE *fp = freopen("emulation.log", "w", stdout);
 #define EMULATION_LOG(x)                               log_out<const char *>(x);
 #else 
 #define EMULATION_LOG(x)
@@ -32,11 +31,7 @@ FILE *fp = freopen("emulation.log", "w", stdout);
 class Emulator : public EmulationInterface {
 public:    
     Emulator() {}
-    ~Emulator() {
-        #ifdef EMULATOR_LOG
-        fclose(fp);
-        #endif
-    }
+    ~Emulator() {}
 
     /**
      * @brief Sets the inactive period for this class mock instance.
@@ -79,7 +74,7 @@ public:
     Emulator& returns(const char * func, any var_t) {
         // TODO check if method already exists? or allow user to add again but will never be actioned?
         _lastFunc = func;
-        RetVal retVal = { 0, var_t };
+        RetVal retVal = { 1, var_t };
         vector<RetVal> then = {};
         MethodProfile method = { func, retVal, then, 0 };
         _methods.push_back(method);
@@ -251,11 +246,10 @@ public:
     template<typename T>
     T doReturn(const char * func) { 
         T value;
-        bool canReturn = false;
-        for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
-            if (method_It->methodName == func) {
-                value = this->findRetVal<T>(method_It);
-                method_It->invoked += 1;
+        for (auto &method : _methods) {
+            if (method.methodName == func) {
+                value = this->findRetVal<T>(method);
+                method.invoked += 1;
                 break;
             }
         }
@@ -276,40 +270,44 @@ public:
      * @throws NoReturnValueException
      */
     template<typename T>
-    T findRetVal(std::vector<MethodProfile>::iterator &method_It) {
+    T findRetVal(MethodProfile &method) {
+std::string methodName = "find ret val for " + std::string(method.methodName);
+log_out<const char *>(methodName.c_str());
         T value;
         // if n > 0 return and decrement n
-        if (method_It->retVal.first > 0) {
-            --method_It->retVal.first;
+        if (method.retVal.first > 0) {
+            --method.retVal.first;
             try {
-                value = std::any_cast<T>(method_It->retVal.second); 
+                value = std::any_cast<T>(method.retVal.second); 
+log_out<const char *>("value found");return value;
             } catch (std::bad_any_cast e) {
                 EMULATION_LOG(e.what());
             }
         }
         // answer if then vector contains elements 
         bool thenIsEmpty = false;
-        if (method_It->then.size() == 0) {
+        if (method.then.size() == 0) {
             thenIsEmpty = true;
         }
-        if (method_It->retVal.first == 0) {
+        if (method.retVal.first == 0) {
             // if then is empty and n is 0 return value anyway
             if (thenIsEmpty) {            
                 try {
-                    value = std::any_cast<T>(method_It->retVal.second); 
+                    value = std::any_cast<T>(method.retVal.second); 
                     return value;
                 } catch (std::bad_any_cast e) {
-                    std::string eMessage = "Return value for " + std::string(method_It->methodName) + " found, casting failed: " + e.what();
+                    std::string eMessage = "Return value for " + std::string(method.methodName) + " found, casting failed: " + e.what();
                     EMULATION_LOG(eMessage.c_str());
                     NoReturnValueException(eMessage.c_str());
                 }
             } else { // if then not empty and n is 0 move onto to then
-                method_It->retVal = method_It->then[0];
-                method_It->then.erase(method_It->then.begin()); 
-                this->findRetVal<T>(method_It);
+                method.retVal = method.then[0];
+                method.then.erase(method.then.begin()); 
+                return this->findRetVal<T>(method);
             }
         }
-        std::string eMessage = "Could not find a return value for " + std::string(method_It->methodName) + ", .returns() must be called for this method.";
+        std::string eMessage = "Could not find a return value for " + std::string(method.methodName) + ", .returns() must be called for this method.";
+        EMULATION_LOG(eMessage.c_str());
         NoReturnValueException(eMessage.c_str());
         return value;
     }
@@ -331,13 +329,6 @@ public:
         return -1;
     }
 
-    protected:
-    int _wait = 0;
-
-    int _lastPsuedoException = 0;
-
-    std::string _lastFunc = "";
-
     /**
      * @brief A store of methods for the mock class.
      * Methods are stored as a vector of 
@@ -345,6 +336,13 @@ public:
      * 
      */
     vector<MethodProfile> _methods;
+
+    protected:
+    int _wait = 0;
+
+    int _lastPsuedoException = 0;
+
+    std::string _lastFunc = "";
 
     /**
      * @brief Throwable exceptions for this mock instance. Stored as a std::map
