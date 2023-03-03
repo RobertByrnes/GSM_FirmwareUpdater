@@ -24,9 +24,9 @@ using namespace std;
 #ifdef EMULATOR_LOG
 #include <Logger.h>
 FILE *fp = freopen("emulation.log", "w", stdout);
-#define LOG_2_TXT(x)                               log_out<const char *>(x);
+#define EMULATION_LOG(x)                               log_out<const char *>(x);
 #else 
-#define LOG_2_TXT(x)
+#define EMULATION_LOG(x)
 #endif
 
 class Emulator : public EmulationInterface {
@@ -71,20 +71,18 @@ public:
      * @return Emulator& 
      */
     Emulator& returns(const char * func, any var_t) {
+        // TODO check if method already exists? or allow user to add again but will never be actioned?
         _lastFunc = func;
-        RetVal retVal = { 1, var_t };
+        RetVal retVal = { 0, var_t };
         vector<RetVal> then = {};
         MethodProfile method = { func, retVal, then, 0 };
         _methods.push_back(method);
-        // TODO swith _returnTypes to _methods
-        std::map<const char *, any> returnMap { { func, var_t } };
-        _returnTypes.push_back(returnMap);
         return *this;
     }
 
     /**
      * @brief Edit the defaualt behaviour of how many times a mocked method will return
-     * the value. The default value for the (int)RetVal.first is 1. If the next vector
+     * the value. The default value for the (int)RetVal.first is 0. If the next vector
      * is empty the mock method will always return (std:any)RetVal.second stored 
      * in MethodProfile::retVal. If MethodProfile::then has elements the
      * mocked method will return the next value, decrementing the value
@@ -158,7 +156,7 @@ public:
      */
     void reset() {
         _wait = 0;
-        _returnTypes.clear();
+        _methods.clear();
         _exceptions.clear();
     }
 
@@ -210,20 +208,35 @@ public:
     template<typename T>
     T mock(const char * func) {
         string logMsg = string("Entered mock method for ") + string(func);
-        LOG_2_TXT(logMsg.c_str());
+        EMULATION_LOG(logMsg.c_str());
         await();
         int exception = throwException(func);
         if (exception > -1) {
-            LOG_2_TXT("Throwing expected exception");
+            EMULATION_LOG("Throwing expected exception");
             throw exception;
         }
-        LOG_2_TXT("Calling doReturn method");
+        EMULATION_LOG("Calling doReturn method");
         return doReturn<T>(func);
+        // TODO no tracking of calls/returns
     }
 
     /**
      * @brief Search the return values vector for the function name,
      * if found will return the return value of the return type.
+     * The logic is implemented through findRetVal().
+     * 
+     * @details In MethodProfile.RetVal is n (first) > 0? If yes
+     * decrement n and return the value (second).
+     * 
+     * @details If MethodProfile.then is empty and MethodProfile.RetVal
+     * n (first) is 0 return the value (second) anyway.
+     * 
+     * @details If MethodProfile.then not empty and MethodProfile.RetVal
+     * n (first) is > 0 return the value (second) and decrement n.
+     * 
+     * @details If MethodProfile.next size() > 0 set MethodProfile.RetVal
+     * to copy the first element of MethodProfile.next, decrement n and
+     * return value(of RetVal) and remove the first element of next.
      * 
      * @tparam T typename
      * @param func const char *
@@ -232,22 +245,66 @@ public:
      */
     template<typename T>
     T doReturn(const char * func) { 
-        // TODO refactor to use and edit vector of invokables, edit the remaining calls during runtime
         T value;
         bool canReturn = false;
-        for (auto returnType : _returnTypes) {
-            if (auto part = returnType.find(func); part != returnType.end()) {    
-                value = std::any_cast<T>(part->second);
-                canReturn = true;
-                break;
+        for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
+            if (method_It->methodName == func) {
+                return this->findRetVal<T>(method_It);
             }
+
         }
         if (!canReturn) {
-            LOG_2_TXT("In doReturn method, return value not found. Throwing NoReturnValueException");
+            EMULATION_LOG("In doReturn method, return value not found. Throwing NoReturnValueException");
             setInternalException(PSUEDO_EXCEPTION_NO_RET_VAL);
             throw PSUEDO_EXCEPTION_NO_RET_VAL;
         }
-        LOG_2_TXT("Returning expected value from doReturn method");
+        EMULATION_LOG("Returning expected value from doReturn method");
+        return value;
+    }
+
+    /**
+     * @brief Implements the logical search and is called by doReturn().
+     * 1. In RetVal is n > 0? If yes decrement n and return value.
+     * 2. If RetVal.n is 0 Check MethodProfile.next for size() if > 0 then not empty.
+     * 3. If MethodProfile.next size() is 0 return RetVal.
+     * 4. ElseIf MethodProfile.next size() > 0 set retVal to the first element of next, 
+     * decrement n and return value(of retVal) and remove the first element of next.
+     * 
+     * @tparam T 
+     * @param method_It 
+     * @return T 
+     */
+    template<typename T>
+    T findRetVal(std::vector<MethodProfile>::iterator &method_It) {
+        T value;
+        // if n > 0 return and decrement n
+        if (method_It->retVal.first > 0) {
+            --method_It->retVal.first;
+            try {
+                value = std::any_cast<T>(method_It->retVal.second); 
+            } catch (std::bad_any_cast e) {
+                EMULATION_LOG(e.what());
+            }
+        }
+        // answer if then vector contains elements 
+        bool thenIsEmpty = false;
+        if (method_It->then.size() == 0) {
+            thenIsEmpty = true;
+        }
+        if (method_It->retVal.first == 0) {
+            // if then is empty and n is 0 return value anyway
+            if (thenIsEmpty) {            
+                try {
+                    value = std::any_cast<T>(method_It->retVal.second); 
+                } catch (std::bad_any_cast e) {
+                    EMULATION_LOG(e.what());
+                }
+            } else { // if then not empty and n is 0 move onto to then
+                method_It->retVal = method_It->then[0];
+                method_It->then.erase(method_It->then.begin()); 
+                this->findRetVal<T>(method_It);
+            }
+        }
         return value;
     }
 
@@ -290,13 +347,6 @@ public:
      * 
      */
     vector<std::map<const char *, uint16_t>> _exceptions;
-
-    /**
-     * @brief Return types for this mock instance. Stored as a std::map
-     * of function name (const char *) and return value (std::any).
-     * 
-     */
-    vector<std::map<const char *, any>> _returnTypes;
 };
 
 #endif

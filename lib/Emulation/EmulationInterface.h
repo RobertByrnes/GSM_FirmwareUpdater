@@ -21,8 +21,6 @@ public:
 
     vector<std::map<const char *, uint16_t>> _exceptions;
 
-    vector<std::map<const char *, any>> _returnTypes;
-
     virtual void waits(int seconds) = 0;
 
     virtual void await() = 0;
