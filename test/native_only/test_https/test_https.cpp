@@ -75,8 +75,7 @@ void testPostJSONMethodReturnsNonEmptyStringOnSuccess() {
     try {
         modemDriverMock.returns("isGprsConnected", true);
         mockHttpClient.returns("post", 0);
-        size_t retVal = 1024;
-        mockHttpClient.returns("write", retVal);
+        mockHttpClient.returns("write", (size_t)1024);
         mockHttpClient.returns("responseStatusCode", 200);
         mockHttpClient.returns("isResponseChuncked", 0);
         mockHttpClient.returns("headerAvailable", true).then(false);

@@ -57,6 +57,12 @@ public:
         usleep(_wait * microseconds);
     }
 
+    void dumpMethods() {
+        for (auto method_It = _methods.begin(); method_It != _methods.end(); ++method_It) {
+            
+        }
+    }
+
     /**
      * @brief Create a MethodProfile instance for the method descibed by the func parameter.
      * The method will return the value stored in the instance of RetVal. An assumption
