@@ -1,5 +1,7 @@
 #define EMULATOR_LOG
-
+#ifndef TINY_GSM_MODEM_SIM800
+#define TINY_GSM_MODEM_SIM800
+#endif
 #include <emulation.h>
 #include <MethodLog.h>
 #include <https.hpp>
