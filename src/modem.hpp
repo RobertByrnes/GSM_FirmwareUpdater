@@ -23,17 +23,14 @@
 // #define TINY_GSM_RX_BUFFER 1024
 // #define MODEM_LED_PIN 2
 
-#define MODEM_NO_NETWORK_CONN (0)
-#define MODEM_NO_GPRS_CONN (1)
-#define MODEM_NO_APN_CONN (2)
+#define MODEM_NO_NETWORK_CONN (1)
+#define MODEM_NO_GPRS_CONN (2)
+#define MODEM_NO_APN_CONN (3)
 
 // Include after ModemDriver definitions
 #include <Wire.h>
-
-#if defined(ARDUINO)
-#include <TinyGsm.h>
+#include <Logger.h>
 #include <TinyGsmClient.h>
-#endif
 
 template <class ModemDriver>
 class Modem {
@@ -102,14 +99,14 @@ bool Modem<ModemDriver>::connect(
 ) {
     try {
         this->awaitNetworkAvailability(sim_modem);
-        this->connectToAPN(sim_modem, apn, gprs_user, gprs_pass, MODEM_LED_PIN);
+        this->connectToAPN(sim_modem, apn, gprs_user, gprs_pass, ledPin);
         this->verifyConnected(sim_modem);
         return true;
-    } catch (uint8_t error) {
+    } catch (int error) {
         switch (error) {
-            case MODEM_NO_NETWORK_CONN: log_e("The modem could not find a network"); break;
-            case MODEM_NO_GPRS_CONN: log_e("The modem could not connect to the APN"); break;
-            case MODEM_NO_APN_CONN: log_e("The modem could not connect to the GPRS network");
+            case 1: log_e("The modem could not find a network"); break;
+            case 2: log_e("The modem could not connect to the APN"); break;
+            case 3: log_e("The modem could not connect to the GPRS network");
         }
     } catch(...) {
         log_e("Errored in Modem::connect and not caught with custom error handler");
@@ -128,7 +125,7 @@ void Modem<ModemDriver>::awaitNetworkAvailability(ModemDriver &sim_modem, long w
 {
     log_i("Waiting for GPRS network");
     if (!sim_modem.waitForNetwork(wait, true)) {
-        throw MODEM_NO_NETWORK_CONN;
+        throw 1;
     }
     log_i("Network available");
 }
@@ -144,7 +141,7 @@ void Modem<ModemDriver>::verifyConnected(ModemDriver &sim_modem)
 {
     log_i("Connecting to GPRS network, status: %i");
     if (!sim_modem.isNetworkConnected() > 0) {
-        throw MODEM_NO_GPRS_CONN;
+        throw 2;
     }
     log_i("GPRS connected OK");
 }
@@ -169,12 +166,14 @@ void Modem<ModemDriver>::connectToAPN(
 ) {
     log_i("Connecting to APN: %s", apn);
     if (!sim_modem.gprsConnect(apn, gprs_user, gprs_pass)) {
-        throw MODEM_NO_APN_CONN;
+        throw 3;
     } else {
         log_i("Connected, ready to send/receive");
     }
     if (ledPin > 0) {
+        #ifdef ARDUINO
         digitalWrite(ledPin, HIGH);
+        #endif
     }
 }
 
@@ -218,7 +217,7 @@ template <typename T>
 bool Modem<ModemDriver>::setupPMU(T wire)
 {
     bool en = true;
-    wire.begin(I2C_SDA, I2C_SCL);
+    wire.begin();
     wire.beginTransmission(IP5306_ADDR);
     wire.write(IP5306_REG_SYS_CTL0);
     if (en) {

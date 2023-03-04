@@ -1,24 +1,21 @@
-#include <unity.h>
-
-#if defined(ARDUINO)
-#include <Arduino.h>
-#else
-#include <ArduinoFake.h>
-#endif
-
+#include <emulation.h>
 #include <modem.hpp>
-#include <mock_tiny_gsm.hpp>
+#include <TinyGsmClient.h>
+
 
 #define MODEM_UART Serial
-MockTinyGsm modemDriverMock(MODEM_UART);
-Modem<MockTinyGsm> modemClass;
+TinyGsm modemDriverMock(MODEM_UART);
+Modem<TinyGsm> modemClass;
 const char *apn = "pkp18-inet";
 const char *gprsUser = "";
 const char *gprsPass = "";
 uint16_t ledPin = 13;
 
 
-void setUp(void) {}
+void setUp(void) {
+    modemDriverMock.reset();
+}
+
 void tearDown(void) {}
 
 void testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork()
@@ -39,7 +36,7 @@ void testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork()
     try {
         modemDriverMock.returns("waitForNetwork", false);
         modemClass.awaitNetworkAvailability(modemDriverMock, 3000L);
-    } catch (uint8_t error) {
+    } catch (int error) {
         exceptionThrown = true;
     }
     TEST_ASSERT_TRUE(exceptionThrown);
@@ -115,17 +112,15 @@ void testLogModemInformationWithoutError()
     TEST_ASSERT_EQUAL(errored, false);
 }
 
-void testSetupPMUReturnsTrueIfWireReturnsZero()
-{
-    modemDriverMock.returns("isNetworkConnected", true);
-    TEST_ASSERT_TRUE(modemClass.setupPMU(Wire));
-}
+// void testSetupPMUReturnsTrueIfWireReturnsZero()
+// {
+//     TEST_ASSERT_TRUE(modemClass.setupPMU(Wire));
+// }
 
-void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
-{
-    // modemDriverMock.returns(false);
-    TEST_ASSERT_FALSE(modemClass.setupPMU(Wire));
-}
+// void testSetupPMUReturnsFalseIfWireReturnsNoneZero()
+// {
+//     TEST_ASSERT_FALSE(modemClass.setupPMU(Wire));
+// }
 
 void testConnectReturnsTrueIfModemConnectedToAPN()
 {
@@ -157,11 +152,11 @@ void testConnectReturnsFalseIfModemFailsToConnect()
     TEST_ASSERT_FALSE(connected);
 }
 
-void setup()
-{ 
+void runTests() {
+    // FILE *fp = freopen("output.txt", "a", stdout);
     UNITY_BEGIN();
-    // RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
-    // RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
+    RUN_TEST(testAwaitNetworkAvailabilityDoesNotThrowIfModemFindsANetwork);
+    RUN_TEST(testAwaitNetworkAvailabilityThrowsIfModemFailsToFindANetwork);
     RUN_TEST(testconnectToAPNDoesNotThrowIfModemConnects);
     RUN_TEST(testconnectToAPNThrowsIfModemFailsToConnect);
     RUN_TEST(testVerifyConnectedDoesNotThrowIfModemIsConnected);
@@ -173,6 +168,25 @@ void setup()
     // RUN_TEST(testSetupPMUReturnsTrueIfWireReturnsZero);
     // RUN_TEST(testSetupPMUReturnsFalseIfWireReturnsNoneZero);
     UNITY_END();
+    // fclose(fp);
+}
+
+#if defined(ARDUINO)
+#include <Arduino.h>
+
+void setup()
+{
+    runTests();
 }
 
 void loop() {}
+
+#else
+
+int main(int argc, char **argv)
+{
+    runTests();
+    return 0;
+}
+
+#endif

@@ -1,4 +1,4 @@
-name: PlatformIO CI
+name: Run Tests
 
 on: 
   push:
@@ -8,43 +8,21 @@ on:
       
 jobs:
   build:
-
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        # os: [macos-latest, windows-latest]
-        os: [windows-latest]
-        # example: [examples/firmware-update/firmware-update.ino, examples/platformio-arduino/main.cpp]
-        example: [examples/platformio-arduino/main.cpp]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache PlatformIO
-      uses: actions/cache@v2
-      with:
-        path: ~/.platformio
-        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
-
+      
     - name: Set up Python
       uses: actions/setup-python@v2
 
+    - name: Configure git
+      run: git config --global advice.detachedHead false
+      
     - name: Install PlatformIO
       run: |
         python -m pip install --upgrade pip
-        pip install --upgrade platformio
-
-    - name: Install library dependencies
-      run: pio pkg install -g
-
-    # - name: Build Examples
-    #   run: pio ci -e esp-wrover-kit examples/ --project-conf=platformio.ini --exclude=src/main.cpp --lib=src --keep-build-dir
-
-    - name: Run Tests
-      run: pio test -e native -vvv
+        pip install platformio
+      
+    - name: Run PlatformIO unit tests
+      run: platformio test -vvv
