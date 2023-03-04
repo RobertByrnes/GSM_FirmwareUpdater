@@ -123,12 +123,11 @@ void testPrintMethodReturnsNonEmptyStringOnSuccess() {
     modemDriverMock.returns("isGprsConnected", true);
     mockHttpClient.returns("print", (size_t)1024);
     mockHttpClient.returns("responseStatusCode", 200);
-    mockHttpClient.returns("connected", (uint8_t)0);
+    mockHttpClient.returns("connected", (uint8_t)1);
     mockHttpClient.returns("available", 1024);
     mockHttpClient.returns("endOfBodyReached", false).then(true);
     mockHttpClient.returns("read", 83);
     std::string response = https.print(modemDriverMock, mockHttpClient, requestBody.c_str());
-    methodLogger.dumpMethodProfiles(mockHttpClient._methods);
     TEST_ASSERT_EQUAL_STRING("S", response.c_str());
 }
 
@@ -198,6 +197,7 @@ void testReadHeadersThrowsIfHeadersInvalid() {
 }
 
 void testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader() {
+    _milliseconds = 1000;
     modemDriverMock.returns("isGprsConnected", true);
     mockHttpClient.returns("get", 0);
     mockHttpClient.returns("responseStatusCode", 200);
@@ -207,11 +207,77 @@ void testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader() 
     SPIFFS.returns("open", true);
     mockHttpClient.returns("connected", (uint8_t)1).then((uint8_t)0);
     mockHttpClient.returns("available", 0).then(256);
-    mockHttpClient.returns("endOfBodyReached", false);
+    mockHttpClient.returns("endOfBodyReached", false).then(true);
     mockHttpClient.returns("readBytes", 100);
     File file;
     file.returns("write", 1);
-    https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource);
+    TEST_ASSERT_TRUE(https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource));
+}
+
+void testDownloadMethodReturnsTrueIfDownloadSucceedsWithContentLengthHeader() {
+    _milliseconds = 1000;
+    modemDriverMock.returns("isGprsConnected", true);
+    mockHttpClient.returns("get", 0);
+    mockHttpClient.returns("responseStatusCode", 200);
+    SPIFFS.returns("exists", true);
+    SPIFFS.returns("remove", true);
+    mockHttpClient.returns("contentLength", 54);
+    SPIFFS.returns("open", true);
+    mockHttpClient.returns("connected", (uint8_t)1).then((uint8_t)0);
+    mockHttpClient.returns("available", 54);
+    mockHttpClient.returns("endOfBodyReached", false).then(true);
+    mockHttpClient.returns("readBytes", 54);
+    File file;
+    file.returns("write", 1);
+    TEST_ASSERT_TRUE(https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource));
+    methodLogger.dumpMethodProfiles(mockHttpClient._methods);
+}
+
+void testDownloadMethodReturnsFalseIfContentLengthCheckNotSatisfied() {
+    _milliseconds = 1000;
+    modemDriverMock.returns("isGprsConnected", true);
+    mockHttpClient.returns("get", 0);
+    mockHttpClient.returns("responseStatusCode", 200);
+    SPIFFS.returns("exists", true);
+    SPIFFS.returns("remove", true);
+    mockHttpClient.returns("contentLength", 540);
+    SPIFFS.returns("open", true);
+    mockHttpClient.returns("connected", (uint8_t)1).then((uint8_t)0);
+    mockHttpClient.returns("available", 54);
+    mockHttpClient.returns("endOfBodyReached", false).then(true);
+    mockHttpClient.returns("readBytes", 54);
+    File file;
+    file.returns("write", 1);
+    TEST_ASSERT_FALSE(https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource));
+    methodLogger.dumpMethodProfiles(mockHttpClient._methods);
+}
+
+void testDownloadMethodThrowsOnNone200Response() {
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.returns("isGprsConnected", true);
+        mockHttpClient.returns("get", 0);
+        mockHttpClient.returns("responseStatusCode", 400);
+        https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource);
+    } catch (int exception) {
+        if (exception == 1) {
+            exceptionThrown = true;
+        }
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
+}
+
+void testDownloadMethodThrowsIfModemNotConnected() {
+    bool exceptionThrown = false;
+    try {
+        modemDriverMock.returns("isGprsConnected", false);
+        https.download(modemDriverMock, mockHttpClient, SPIFFS, fakeResource, fakeResource);
+    } catch (int exception) {
+        if (exception == 0) {
+            exceptionThrown = true;
+        }
+    }
+    TEST_ASSERT_TRUE(exceptionThrown);
 }
 
 void runTests() {
@@ -228,10 +294,10 @@ void runTests() {
     RUN_TEST(testResponseOKMethodReturnsTrueIfStatusCodeInSwitch);
     RUN_TEST(testResponseOKMethodReturnsFalseIfStatusCodeNotInSwitch);
     RUN_TEST(testDownloadMethodReturnsTrueIfDownloadSucceedsWithNoContentLengthHeader);
-    // TODO add testDownloadMethodReturnsTrueIfDownloadSucceedsWithContentLengthHeader(); TEST_ASSERT_TRUE 
-    // TODO add testDownloadMethodReturnsFalseIfContentLengthCheckNotSatisfied(); TEST_ASSERT_FALSE
-    // TODO add testDownloadMethodThrowsOnNone200Response();
-    // TODO add testDownloadMethodThrowsIfModemNotConnected();
+    RUN_TEST(testDownloadMethodReturnsTrueIfDownloadSucceedsWithContentLengthHeader); 
+    RUN_TEST(testDownloadMethodReturnsFalseIfContentLengthCheckNotSatisfied);
+    RUN_TEST(testDownloadMethodThrowsOnNone200Response);
+    RUN_TEST(testDownloadMethodThrowsIfModemNotConnected);
     RUN_TEST(testReadHeadersDoesNotThrowIfHeadersValid);
     RUN_TEST(testReadHeadersThrowsIfHeadersInvalid);
     UNITY_END();

@@ -43,7 +43,7 @@ using namespace std;
 template <class ModemDriver, class HttpClientDriver>
 class HTTPS {
     public:
-    const static int _httpsTimeout = 30000L;
+    const static int _httpsTimeout = 60000L;
     HTTPS() {}
     ~HTTPS() {}
     
@@ -56,7 +56,6 @@ class HTTPS {
      * 
      * @throws int HTTPS_NONE_200_RESP = 1
      */
-    // template <class ModemDriver, class HttpClientDriver>
     string get(ModemDriver &simModem, HttpClientDriver &httpClient, const char * resource) {
         if (simModem.isGprsConnected()) {
             log_i("Making GET request");
@@ -87,7 +86,6 @@ class HTTPS {
      * @throws HTTPS_NONE_200_RESP
      * @return std::string 
      */
-    // template<class ModemDriver, class HttpClientDriver>
     string postJSON(
         ModemDriver &simModem, 
         HttpClientDriver &httpClient, 
@@ -141,7 +139,6 @@ class HTTPS {
      * @throws HTTPS_NO_GPRS_CONN == 0
      * @throws HTTPS_NONE_200_RESP == 1
      */
-    // template<class ModemDriver, class HttpClientDriver>
     string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * requestBody) {
         if (simModem.isGprsConnected()) {
             string response = "";
@@ -152,7 +149,6 @@ class HTTPS {
             if (this->responseOK(statusCode)) {
                 unsigned long timeoutStart = millis();
                 char c;
-
                 while (
                     (httpClient.connected() || httpClient.available()) &&
                     (!httpClient.endOfBodyReached()) &&
@@ -208,17 +204,16 @@ class HTTPS {
 
                 int contentLength = httpClient.contentLength();
                 log_i("Content length: %i", contentLength);
-                unsigned long timeoutStart = millis();
                 int bin;
                 CRC32 crc;
                 uint8_t wbuf[HTTPS_WRITE_BUFFER];
                 uint32_t readLength = 0;
                 File file = SPIFFS.open(filePath, "a");
-
+                unsigned long timeoutStart = millis();
                 while (
                     (httpClient.connected() || httpClient.available()) &&
-                    !(httpClient.endOfBodyReached()) &&
-                    ((millis() - timeoutStart) < this->_httpsTimeout)
+                    (!httpClient.endOfBodyReached()) 
+                    // && ((millis() - timeoutStart) < this->_httpsTimeout)
                 ) {
                     if (httpClient.available()) {
                         bin = httpClient.readBytes(wbuf, sizeof(wbuf));
@@ -251,7 +246,6 @@ class HTTPS {
                 } else if(readLength == contentLength) {
                     return true;
                 }
-
                 return false;
             } else {
                 throw 1;

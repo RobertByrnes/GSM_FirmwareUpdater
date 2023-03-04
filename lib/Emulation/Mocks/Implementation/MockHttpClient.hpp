@@ -296,6 +296,7 @@ class HttpClient : public Emulator, public Client {
     */
     int read() { return this->mock<int>("read"); }
     int read(uint8_t *buf, size_t size) { return this->mock<int>("read"); }
+    int readBytes(uint8_t *buf, size_t size) { return this->mock<int>("read"); }
     int peek() { return iClient->peek(); }
     void flush() { iClient->flush(); }
 
