@@ -4,7 +4,7 @@
 #include <MethodLog.h>
 #include <https.hpp>
 #include <modem.hpp>
-#include <TinyGsm.h>
+#include <TinyGsmClient.h>
 #include <SSLClient.h>
 #include <ArduinoHttpClient.h>
 #include <CRC32.h>

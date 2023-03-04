@@ -30,7 +30,6 @@
 // Include after ModemDriver definitions
 #include <Wire.h>
 #include <Logger.h>
-#include <TinyGsm.h>
 #include <TinyGsmClient.h>
 
 template <class ModemDriver>

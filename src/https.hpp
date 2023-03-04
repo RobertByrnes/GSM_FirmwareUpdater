@@ -32,7 +32,7 @@
 #define HTTPS_HEADER_VALUE_CHUNKED                  "chunked"
 
 #include <string.h>
-#include <TinyGSM.h>
+#include <TinyGsmClient.h>
 #include <ArduinoHttpClient.h>
 #include <CRC32.h>
 #include "FS.h"
