@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <Emulator.h>
-#include "MockFS.hpp"
+#include "MockFS.h"
 
 namespace fs {
 
