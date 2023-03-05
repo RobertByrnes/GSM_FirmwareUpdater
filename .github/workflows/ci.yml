@@ -1,4 +1,4 @@
-name: Run Tests
+name: CI tests and analysis
 
 on: 
   push:
@@ -46,4 +46,3 @@ jobs:
 
     - name: Code static analysis
       run: pio check --skip-packages
-      
