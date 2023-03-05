@@ -7,7 +7,7 @@ on:
       - development
       
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,4 +25,25 @@ jobs:
         pip install platformio
       
     - name: Run PlatformIO unit tests
-      run: platformio test -vvv
+      run: platformio test -vvv -e native
+  
+  analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Set up Python
+      uses: actions/setup-python@v2
+
+    - name: Configure git
+      run: git config --global advice.detachedHead false
+      
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+
+    - name: Code static analysis
+      run: pio check --skip-packages
+      
