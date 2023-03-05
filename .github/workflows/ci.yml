@@ -25,4 +25,4 @@ jobs:
         pip install platformio
       
     - name: Run PlatformIO unit tests
-      run: platformio test -vvv
+      run: pwd; platformio test -vvv
