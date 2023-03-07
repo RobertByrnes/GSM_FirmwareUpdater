@@ -39,8 +39,21 @@
 #include <CRC32.h>
 #include "FS.h"
 #include "SPIFFS.h"
+#include <vector>
 
 using namespace std;
+
+/**
+ * @brief A structure to define a request header.
+ * 
+ */
+typedef std::pair<const char *, const char *> Header;
+
+/**
+ * @brief A container to hold a group of request headers.
+ * 
+ */
+typedef vector<Header> Headers;
 
 template <class ModemDriver, class HttpClientDriver>
 class HTTPS {
@@ -141,16 +154,14 @@ class HTTPS {
      * @throws HTTPS_NO_GPRS_CONN == 0
      * @throws HTTPS_NONE_200_RESP == 1
      */
-    string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * endPoint, string requestBody) {
+    string print(ModemDriver &simModem, HttpClientDriver &httpClient, Headers &headers, const char * endPoint, string requestBody) {
         if (simModem.isGprsConnected()) { 
             string response = "";
             httpClient.setHttpResponseTimeout(HTTPS::_httpsTimeout);
             httpClient.connectionKeepAlive();
             httpClient.beginRequest();
             httpClient.post(endPoint);
-            httpClient.sendHeader(HTTPS_HEADER_ACCEPT, HTTPS_JSON_HEADER);
-            httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_URLENCODED_HEADER);
-            httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
+            this->sendHeaders<HttpClientDriver>(httpClient, headers);
             httpClient.endRequest();
             httpClient.write((uint8_t*)requestBody.c_str(), requestBody.length());
             int statusCode = httpClient.responseStatusCode();
@@ -305,6 +316,22 @@ class HTTPS {
             case HTTPS_ACCEPTED_RESPONSE_CODE:
             case HTTPS_CREATED_RESPONSE_CODE: return true; break;
             default: return false;
+        }
+    }
+
+    /**
+     * @brief A simple mechanism to send a group of HTTP headers.
+     * 
+     * @tparam HttpDriver 
+     * @param httpClient 
+     * @param headers 
+     * @return true 
+     * @return false 
+     */
+    template<class HttpDriver>
+    void sendHeaders(HttpDriver &httpClient, Headers headers) {
+        for (int i = 0; i < headers.size(); ++i) {
+            httpClient.sendHeader(headers[i].first, headers[i].second);
         }
     }
 };

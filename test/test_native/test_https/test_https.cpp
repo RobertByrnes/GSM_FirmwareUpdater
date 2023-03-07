@@ -33,6 +33,12 @@ MethodLog methodLogger;
 
 String successReponse = "Develop success from failures.";
 std::string requestBody = "The road to success and the road to failure are almost exactly the same.";
+Headers printHeaders = {
+    { HTTPS_HEADER_ACCEPT, HTTPS_JSON_HEADER },
+    { HTTPS_HEADER_CONTENT_TYPE, HTTPS_URLENCODED_HEADER },
+    { HTTPS_HEADER_CONTENT_LENGTH, to_string(requestBody.length()).c_str() }
+};
+
 
 void setUp(void) {
     modemDriverMock.reset();
@@ -129,7 +135,7 @@ void testPrintMethodReturnsNonEmptyStringOnSuccess() {
     mockHttpClient.returns("available", 1024);
     mockHttpClient.returns("endOfBodyReached", false).then(true);
     mockHttpClient.returns("read", 83);
-    std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
+    std::string response = https.print(modemDriverMock, mockHttpClient, printHeaders, fakeResource, requestBody);
     TEST_ASSERT_EQUAL_STRING("S", response.c_str());
 }
 
@@ -139,7 +145,7 @@ void testPrintMethodThrowsOnNone200Response() {
         modemDriverMock.returns("isGprsConnected", true);
         mockHttpClient.returns("print", (size_t)1024);
         mockHttpClient.returns("responseStatusCode", 500);
-        std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
+        std::string response = https.print(modemDriverMock, mockHttpClient, printHeaders, fakeResource, requestBody);
     } catch (int exception) {
         if (exception == 1) {
             exceptionThrown = true;
@@ -152,7 +158,7 @@ void testPrintMethodThrowsIfModemNotConnected() {
     bool exceptionThrown = false;
     try {
         modemDriverMock.returns("isGprsConnected", false);
-        std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
+        std::string response = https.print(modemDriverMock, mockHttpClient, printHeaders, fakeResource, requestBody);
     } catch (int exception) {
         if (exception == 0) { exceptionThrown = true; }
     }
