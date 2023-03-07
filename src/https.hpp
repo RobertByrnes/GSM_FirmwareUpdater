@@ -140,10 +140,9 @@ class HTTPS {
      * @throws HTTPS_NONE_200_RESP == 1
      */
     string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * requestBody) {
-        if (simModem.isGprsConnected()) {
+        if (simModem.isGprsConnected()) { 
             string response = "";
-            log_i("Attempting to download");
-            httpClient.print(requestBody);
+            httpClient.print(requestBody); // TODO debugging this request - getting -3 and throwing none 200
             int statusCode = httpClient.responseStatusCode();
             log_i("Status code: %i", statusCode);
             if (this->responseOK(statusCode)) {
@@ -160,9 +159,11 @@ class HTTPS {
 
                 return response;
             } else {
+                log_e("Throwing None 200 response");
                 throw 1;
             }
-        } else {
+        } else { 
+            log_e("Throwing GPRS disconnected");  
             throw 0;
         }    
     }

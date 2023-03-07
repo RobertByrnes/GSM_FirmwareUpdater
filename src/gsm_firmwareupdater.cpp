@@ -1,4 +1,4 @@
-#include "GSM_FirmwareUpdater.h"
+#include "gsm_firmwareupdater.h"
 
 // Constructor
 GSM_FirmwareUpdater::GSM_FirmwareUpdater(std::string currentVersion): _currentVersion(currentVersion)
@@ -51,33 +51,6 @@ void GSM_FirmwareUpdater::updateFromFS(const char * updateFilePath)
     SPIFFS.remove("/update.bin");
   } else {
     log_e("Can't open update file");
-  }
-}
-
-void GSM_FirmwareUpdater::beginProcessingUpdate(Stream &updateSource, size_t updateSize)
-{
-  if (Update.begin(updateSize)) {
-    size_t written = Update.writeStream(updateSource);
-    if (written == updateSize) {
-      log_i("Written: %i successfully", written);
-    } else {
-      log_i("Only written: %i / %i. Will Retry...", written, updateSize);
-    }
-
-    if (Update.end()) {
-      log_i("OTA complete");
-      if (Update.isFinished()) {
-        SPIFFS.remove("/update.bin");
-        log_i("Ota successful, restarting");
-        ESP.restart();
-      } else {
-        log_e("Ota did not complete, something went wrong");
-      }
-    } else {
-      log_e("Error Occured #: %u", Update.getError());
-    }
-  } else {
-    log_e("Not enough space to do OTA");
   }
 }
 

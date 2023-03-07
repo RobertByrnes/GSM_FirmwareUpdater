@@ -28,7 +28,33 @@ class GSM_FirmwareUpdater
     bool spiffsInit();
      
     template<typename T>
-    void beginProcessingUpdate(T &updateSource, size_t updateSize);
+    void beginProcessingUpdate(T &updateSource, size_t updateSize)
+    {
+        if (Update.begin(updateSize)) {
+            size_t written = Update.writeStream(updateSource);
+            if (written == updateSize) {
+            log_i("Written: %i successfully", written);
+            } else {
+            log_i("Only written: %i / %i. Will Retry...", written, updateSize);
+            }
+
+            if (Update.end()) {
+            log_i("OTA complete");
+            if (Update.isFinished()) {
+                SPIFFS.remove("/update.bin");
+                log_i("Ota successful, restarting");
+                ESP.restart();
+            } else {
+                log_e("Ota did not complete, something went wrong");
+            }
+            } else {
+            log_e("Error Occured #: %u", Update.getError());
+            }
+        } else {
+            log_e("Not enough space to do OTA");
+        }
+    }
+
     std::string versionNumberFromString(std::string availableVersion);
 };
 
