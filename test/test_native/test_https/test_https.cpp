@@ -129,7 +129,7 @@ void testPrintMethodReturnsNonEmptyStringOnSuccess() {
     mockHttpClient.returns("available", 1024);
     mockHttpClient.returns("endOfBodyReached", false).then(true);
     mockHttpClient.returns("read", 83);
-    std::string response = https.print(modemDriverMock, mockHttpClient, requestBody.c_str());
+    std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
     TEST_ASSERT_EQUAL_STRING("S", response.c_str());
 }
 
@@ -139,7 +139,7 @@ void testPrintMethodThrowsOnNone200Response() {
         modemDriverMock.returns("isGprsConnected", true);
         mockHttpClient.returns("print", (size_t)1024);
         mockHttpClient.returns("responseStatusCode", 500);
-        std::string response = https.print(modemDriverMock, mockHttpClient, requestBody.c_str());
+        std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
     } catch (int exception) {
         if (exception == 1) {
             exceptionThrown = true;
@@ -152,7 +152,7 @@ void testPrintMethodThrowsIfModemNotConnected() {
     bool exceptionThrown = false;
     try {
         modemDriverMock.returns("isGprsConnected", false);
-        std::string response = https.print(modemDriverMock, mockHttpClient, requestBody.c_str());
+        std::string response = https.print(modemDriverMock, mockHttpClient, fakeResource, requestBody);
     } catch (int exception) {
         if (exception == 0) { exceptionThrown = true; }
     }

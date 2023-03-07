@@ -4,6 +4,7 @@
 #define HTTPS_FAILED_HEADER_READ                    (2)
 #define HTTPS_WRITE_BUFFER                          512
 #define HTTPS_JSON_HEADER                           "application/json"
+#define HTTPS_URLENCODED_HEADER                     "application/x-www-form-urlencoded"
 #define HTTPS_OAUTH_HEADER                          "Authorization"
 #define HTTPS_OK_RESPONSE_CODE                      200
 #define HTTPS_CREATED_RESPONSE_CODE                 201
@@ -26,6 +27,7 @@
 #define HTTPS_METHOD_DELETE                         "DELETE"
 #define HTTPS_HEADER_CONTENT_LENGTH                 "Content-Length"
 #define HTTPS_HEADER_CONTENT_TYPE                   "Content-Type"
+#define HTTPS_HEADER_ACCEPT                         "Accept"
 #define HTTPS_HEADER_CONNECTION                     "Connection"
 #define HTTPS_HEADER_TRANSFER_ENCODING              "Transfer-Encoding"
 #define HTTPS_HEADER_USER_AGENT                     "User-Agent"
@@ -130,19 +132,27 @@ class HTTPS {
 
     /**
      * @brief A simple API for sending a manually contructed request.
-     * The request
      * 
      * @param simModem 
      * @param httpClient 
+     * @param endPoint 
      * @param requestBody 
      * @return std::string 
      * @throws HTTPS_NO_GPRS_CONN == 0
      * @throws HTTPS_NONE_200_RESP == 1
      */
-    string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * requestBody) {
+    string print(ModemDriver &simModem, HttpClientDriver &httpClient, const char * endPoint, string requestBody) {
         if (simModem.isGprsConnected()) { 
             string response = "";
-            httpClient.print(requestBody); // TODO debugging this request - getting -3 and throwing none 200
+            httpClient.setHttpResponseTimeout(HTTPS::_httpsTimeout);
+            httpClient.connectionKeepAlive();
+            httpClient.beginRequest();
+            httpClient.post(endPoint);
+            httpClient.sendHeader(HTTPS_HEADER_ACCEPT, HTTPS_JSON_HEADER);
+            httpClient.sendHeader(HTTPS_HEADER_CONTENT_TYPE, HTTPS_URLENCODED_HEADER);
+            httpClient.sendHeader(HTTPS_HEADER_CONTENT_LENGTH, requestBody.length());
+            httpClient.endRequest();
+            httpClient.write((uint8_t*)requestBody.c_str(), requestBody.length());
             int statusCode = httpClient.responseStatusCode();
             log_i("Status code: %i", statusCode);
             if (this->responseOK(statusCode)) {
