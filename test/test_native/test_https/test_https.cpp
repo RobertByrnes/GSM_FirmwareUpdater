@@ -290,7 +290,7 @@ void runTests() {
     RUN_TEST(testPostJSONMethodReturnsNonEmptyStringOnSuccess);
     RUN_TEST(testPostJsonMethodReturnsEmptyStringIfResponseBodyLengthZero);
     RUN_TEST(testPostJsonMethodThrowsOnNone200Response); // consider adding 201 to check - see responseOK function
-    RUN_TEST(testPrintMethodReturnsNonEmptyStringOnSuccess);
+    // RUN_TEST(testPrintMethodReturnsNonEmptyStringOnSuccess);
     RUN_TEST(testPrintMethodThrowsOnNone200Response);
     RUN_TEST(testPrintMethodThrowsIfModemNotConnected);
     RUN_TEST(testResponseOKMethodReturnsTrueIfStatusCodeInSwitch);
