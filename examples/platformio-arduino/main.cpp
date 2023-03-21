@@ -23,6 +23,7 @@ SSLClient secureLayer(&gsmTransportLayer);
 HttpClient httpClient = HttpClient(secureLayer, hostname, port);
 Modem<TinyGsm> modemClass;
 GSM_FirmwareUpdater updateHandler(currentFirmwareVersion);
+HTTPS<TinyGsm, HttpClient> https;
 
 // CA Certificate for lets encrypt (valid until Jun  4 11:04:38 2035 GMT)
 const char root_ca[] PROGMEM =
@@ -96,11 +97,11 @@ void loop()
     modemClass.logConnectionInformation(modemDriver);
     
     try {
-        std::string response = HTTPS::get(modemDriver, httpClient, versionFileUrl);
+        std::string response = https.get(modemDriver, httpClient, versionFileUrl);
         httpClient.stop();
 
         if (updateHandler.checkUpdateAvailable(response)) {
-            if (HTTPS::download(modemDriver, httpClient, binaryFileUrl, updateFilePath)) {
+            if (https.download<fs::SPIFFSFS>(modemDriver, httpClient, SPIFFS, binaryFileUrl, updateFilePath)) {
                 log_i("Firmware on disk, attempting update");
                 updateHandler.updateFromFS(updateFilePath);
             }
