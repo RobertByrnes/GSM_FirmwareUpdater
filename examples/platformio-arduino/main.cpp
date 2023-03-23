@@ -6,9 +6,9 @@
 #include <https.hpp>
 #include <gsm_firmwareupdater.h>
 
-const char apn[] = ""; 
-const char gprsUser[] = ""; 
-const char gprsPass[] = "";
+const char apn[] = "giffgaff.com"; 
+const char gprsUser[] = "gg"; 
+const char gprsPass[] = "p";
 const char hostname[] = "www.example.com";
 const char versionFileUrl[] = "/bin/firmware.txt";
 const char binaryFileUrl[] = "/bin/firmware.bin";
@@ -110,9 +110,9 @@ void loop()
         modemDriver.gprsDisconnect();
         log_i("GPRS disconnected");
         digitalWrite(MODEM_LED_PIN, LOW);
-    } catch (uint8_t error) {
-        log_e("GPRS disconnected during request, failed");
+    } catch (...) { // If for example a 404 response was returned
+        log_e("Errored retrying...");
     }
 
-    delay(15000);
+    delay(5000);
 }
