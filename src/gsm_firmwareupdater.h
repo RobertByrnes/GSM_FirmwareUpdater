@@ -18,9 +18,11 @@ class GSM_FirmwareUpdater
     public:
     std::string _currentVersion = "";
 
+    GSM_FirmwareUpdater();
     GSM_FirmwareUpdater(std::string currentVersion);
     ~GSM_FirmwareUpdater();
 
+    void setCurrentVersion(std::string currentVersion);
     bool checkUpdateAvailable(std::string availableVersionString);
     void updateFromFS(const char * updateFilePath);
 

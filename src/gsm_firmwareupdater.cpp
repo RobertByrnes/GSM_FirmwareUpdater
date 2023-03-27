@@ -1,6 +1,12 @@
 #include "gsm_firmwareupdater.h"
 
 // Constructor
+GSM_FirmwareUpdater::GSM_FirmwareUpdater()
+{
+  this->spiffsInit();
+}
+
+// Constructor
 GSM_FirmwareUpdater::GSM_FirmwareUpdater(std::string currentVersion): _currentVersion(currentVersion)
 {
   this->spiffsInit();
@@ -9,6 +15,10 @@ GSM_FirmwareUpdater::GSM_FirmwareUpdater(std::string currentVersion): _currentVe
 // Destructor
 GSM_FirmwareUpdater::~GSM_FirmwareUpdater() {}
 
+void GSM_FirmwareUpdater::setCurrentVersion(std::string currentVersion)
+{
+  _currentVersion = currentVersion;
+}
 
 /**
  * @brief Mount the SPIFFS filesystem (this is in FLASH memory).
