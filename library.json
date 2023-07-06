@@ -1,6 +1,6 @@
 {
     "name": "GSM_FirmwareUpdater",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "A Developer friendly package for performing firmware updates",
     "keywords": "updates, firmware, http, https, esp32, esp32-s2, esp32-c3, esp32-s3",
     "repository":
@@ -23,7 +23,7 @@
     "examples": "examples/*/*",
     "dependencies":
     {
-        "govorox/SSLClient": "1.0.0",
+        "govorox/SSLClient": "https://github.com/RobertByrnes/SSLClient.git#master",
         "bakercp/CRC32": "^2.0.0",
         "vshymanskyy/TinyGSM": "0.11.5",
         "arduino-libraries/ArduinoHttpClient": "0.4.0"
