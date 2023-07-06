@@ -24,8 +24,7 @@
     "dependencies":
     {
         "govorox/SSLClient": "https://github.com/RobertByrnes/SSLClient.git#master",
-        "bakercp/CRC32": "^2.0.0",
-        "vshymanskyy/TinyGSM": "0.11.5",
+        "vshymanskyy/TinyGSM": "^0.11.7",
         "arduino-libraries/ArduinoHttpClient": "0.4.0"
     }
   }
