@@ -6,9 +6,9 @@
 #include <https.hpp>
 #include <gsm_firmwareupdater.h>
 
-const char apn[] = ""; 
-const char gprsUser[] = ""; 
-const char gprsPass[] = "";
+const char apn[] = "giffgaff.com"; 
+const char gprsUser[] = "gg"; 
+const char gprsPass[] = "p";
 const char hostname[] = "www.example.com";
 const char versionFileUrl[] = "/bin/firmware.txt";
 const char binaryFileUrl[] = "/bin/firmware.bin";
@@ -23,6 +23,7 @@ SSLClient secureLayer(&gsmTransportLayer);
 HttpClient httpClient = HttpClient(secureLayer, hostname, port);
 Modem<TinyGsm> modemClass;
 GSM_FirmwareUpdater updateHandler(currentFirmwareVersion);
+HTTPS<TinyGsm, HttpClient> https;
 
 // CA Certificate for lets encrypt (valid until Jun  4 11:04:38 2035 GMT)
 const char root_ca[] PROGMEM =
@@ -96,11 +97,11 @@ void loop()
     modemClass.logConnectionInformation(modemDriver);
     
     try {
-        std::string response = HTTPS::get(modemDriver, httpClient, versionFileUrl);
+        std::string response = https.get(modemDriver, httpClient, versionFileUrl);
         httpClient.stop();
 
         if (updateHandler.checkUpdateAvailable(response)) {
-            if (HTTPS::download(modemDriver, httpClient, binaryFileUrl, updateFilePath)) {
+            if (https.download<fs::SPIFFSFS>(modemDriver, httpClient, SPIFFS, binaryFileUrl, updateFilePath)) {
                 log_i("Firmware on disk, attempting update");
                 updateHandler.updateFromFS(updateFilePath);
             }
@@ -109,9 +110,9 @@ void loop()
         modemDriver.gprsDisconnect();
         log_i("GPRS disconnected");
         digitalWrite(MODEM_LED_PIN, LOW);
-    } catch (uint8_t error) {
-        log_e("GPRS disconnected during request, failed");
+    } catch (...) { // If for example a 404 response was returned
+        log_e("Errored retrying...");
     }
 
-    delay(15000);
+    delay(5000);
 }

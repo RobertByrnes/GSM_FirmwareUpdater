@@ -1,35 +1,26 @@
-#ifndef GSM_FIRMWARE_UPDATER_H
-#define GSM_FIRMWARE_UPDATER_H
+#if not defined(MOCK_GSM_FIRMWARE_UPDATER_H)
+#define MOCK_GSM_FIRMWARE_UPDATER_H
 
-#if defined(ARDUINO)
-#include <Update.h> 
-#include "FS.h"
-#include "SPIFFS.h"
-#endif
+#include <Arduino.h>
+#include <Emulator.h>
+#include <SPIFFS.h>
+#include "Update.h"
+#include <FS.h>
 
-#include <semver.hpp>
+class MockGsmFirmwareUpdater : public Emulator {
+public:
+	MockGsmFirmwareUpdater(std::string currentVersion) {}
+	~MockGsmFirmwareUpdater() {}
 
-#define GSM_FIRMWARE_UPDATER_NETWORK_ERROR              (1)
-#define GSM_FIRMWARE_UPDATER_CLIENT_ERROR               (2)
-#define GSM_FIRMWARE_UPDATER_CLIENT_TIMEOUT             (3)
+    bool checkUpdateAvailable(std::string availableVersionString) { return this->mock<bool>("checkUpdateAvailable"); }
+    void updateFromFS(const char * updateFilePath) {}
 
-class GSM_FirmwareUpdater
-{
-    public:
-    std::string _currentVersion = "";
+protected:
 
-    GSM_FirmwareUpdater();
-    GSM_FirmwareUpdater(std::string currentVersion);
-    ~GSM_FirmwareUpdater();
+private:
+    bool spiffsInit() {}
 
-    void setCurrentVersion(std::string currentVersion);
-    bool checkUpdateAvailable(std::string availableVersionString);
-    void updateFromFS(const char * updateFilePath);
-
-    private:
-    bool spiffsInit();
-     
-    template<typename T>
+	    template<typename T>
     void beginProcessingUpdate(T &updateSource, size_t updateSize)
     {
         if (Update.begin(updateSize)) {
@@ -57,7 +48,7 @@ class GSM_FirmwareUpdater
         }
     }
 
-    std::string versionNumberFromString(std::string availableVersion);
+    std::string versionNumberFromString(std::string availableVersion) { return this->mock<std::string>("versionNumberFromString"); }
 };
 
 #endif
