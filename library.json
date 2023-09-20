@@ -1,31 +1,31 @@
 {
-    "name": "GSM_FirmwareUpdater",
-    "version": "1.1.1",
-    "description": "A Developer friendly package for performing firmware updates",
-    "keywords": "updates, firmware, http, https, esp32, esp32-s2, esp32-c3, esp32-s3",
-    "repository":
+  "name": "GSM_FirmwareUpdater",
+  "version": "1.1.1",
+  "description": "A Developer friendly package for performing firmware updates",
+  "keywords": "updates, firmware, http, https, esp32, esp32-s2, esp32-c3, esp32-s3",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/RobertByrnes/GSM_FirmwareUpdater.git"
+  },
+  "authors":
+  [
     {
-      "type": "git",
-      "url": "https://github.com/RobertByrnes/GSM_FirmwareUpdater.git"
-    },
-    "authors":
-    [
-      {
-        "name": "Robert Byrnes",
-        "email": "robbyrnes@hotmail.co.uk",
-        "maintainer": true
-      }
-    ],
-    "license": "GPL-3.0-or-later",
-    "frameworks": "*",
-    "platforms": "espressif32, arduino",
-    "headers": ["gsm_firmwareupdater.h", "modem.hpp"],
-    "examples": "examples/*/*",
-    "dependencies":
-    {
-      "govorox/SSLClient": "https://github.com/govorox/SSLClient.git#fix-buffer-issue-when-writing-data-larger-than-the-receiving-buffer",
-      "vshymanskyy/TinyGSM": "^0.11.7",
-      "arduino-libraries/ArduinoHttpClient": "0.5.0",
-      "digitaldragon/WebUtility": "https://github.com/RobertByrnes/WebUtility.git#development"
+      "name": "Robert Byrnes",
+      "email": "robbyrnes@hotmail.co.uk",
+      "maintainer": true
     }
+  ],
+  "license": "GPL-3.0-or-later",
+  "frameworks": "*",
+  "platforms": "espressif32, arduino",
+  "headers": ["gsm_firmwareupdater.h", "modem.hpp"],
+  "examples": "examples/*/*",
+  "dependencies":
+  {
+    "govorox/SSLClient": "https://github.com/govorox/SSLClient.git#51-where-does-the-value-of-the-timeout-parameter-in-client_net_recv_timeout-come-from",
+    "vshymanskyy/TinyGSM": "^0.11.7",
+    "arduino-libraries/ArduinoHttpClient": "0.5.0",
+    "digitaldragon/WebUtility": "https://github.com/RobertByrnes/WebUtility.git#development"
   }
+}
