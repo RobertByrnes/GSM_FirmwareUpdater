@@ -23,7 +23,7 @@
   "examples": "examples/*/*",
   "dependencies":
   {
-    "govorox/SSLClient": "https://github.com/govorox/SSLClient.git#51-where-does-the-value-of-the-timeout-parameter-in-client_net_recv_timeout-come-from",
+    "govorox/SSLClient": "https://github.com/govorox/SSLClient.git#master",
     "vshymanskyy/TinyGSM": "^0.11.7",
     "arduino-libraries/ArduinoHttpClient": "0.5.0",
     "digitaldragon/WebUtility": "https://github.com/RobertByrnes/WebUtility.git#development"
